@@ -18,8 +18,8 @@ Phase 4 bridges the orchestration layer with AI platforms. Since PersonalAxis is
 ## 🎯 Task Breakdown
 
 ### Task 4.1: Prompt Architecture Setup
-- [ ] Create `prompts/README.md` with usage instructions
-- [ ] Define folder structure:
+- [x] Create `prompts/README.md` with usage instructions
+- [x] Define folder structure:
   ```
   prompts/
   ├── README.md
@@ -33,35 +33,35 @@ Phase 4 bridges the orchestration layer with AI platforms. Since PersonalAxis is
   ```
 
 ### Task 4.2: Daily Coach Prompt (Gemini)
-- [ ] Create `prompts/daily_coach_system.md`
-  - Role definition: Empathetic life coach
+- [x] Create `prompts/daily_coach_system.md`
+  - Role definition: Daily coach & Reflection partner
   - Context expectations: `context.md` format
-  - Conversation modes: Brain dump, reflection, planning
+  - Conversation modes: Brain dump, reflection, planning + alternative perspectives
   - Output contract: JSON schema for `save-journal`
 
 ### Task 4.3: Periodic Reviewer Prompt (ChatGPT)
-- [ ] Create `prompts/periodic_reviewer_system.md`
-  - Role definition: Strategic life analyst
+- [x] Create `prompts/periodic_reviewer_system.md`
+  - Role definition: Strategic life analyst (Objective focused)
   - Context expectations: `{type}_{period}_context.md` format
   - Review modes: Weekly, Monthly, Quarterly, Yearly
   - Output contract: JSON schema for `save-review`
 
-- [ ] Create review templates:
+- [x] Create review templates:
   - `weekly_review.md`: Task completion, micro-adjustments
   - `monthly_review.md`: Habit trends, emotional patterns
   - `quarterly_review.md`: SMART goal validation, pillar balance
   - `yearly_review.md`: Life direction, major achievements
 
 ### Task 4.4: CLI Enhancement (Optional)
-- [ ] Implement `save-review` command in `main.py`
+- [x] Implement `save-review` command in `main.py`
   - Parse JSON from ChatGPT review sessions
   - Create Review Session entry in Notion
   - Update goal statuses as specified
 
 ### Task 4.5: Documentation
-- [ ] Update `orchestration/README.md` with AI setup section
-- [ ] Create quick-start guide for Gemini Gem setup
-- [ ] Create quick-start guide for ChatGPT Custom GPT setup
+- [x] Update `orchestration/README.md` with AI setup section
+- [x] Create quick-start guide for Gemini Gem setup
+- [x] Create quick-start guide for ChatGPT Custom GPT setup
 
 ---
 
