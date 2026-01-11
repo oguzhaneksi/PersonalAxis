@@ -1,0 +1,291 @@
+import os
+import sys
+import datetime
+from typing import Any, Dict, List, Optional
+from notion_client import Client
+from notion_client.errors import APIResponseError
+from dotenv import load_dotenv
+
+load_dotenv()
+
+class NotionClient:
+    """
+    A wrapper for Notion API operations specifically tailored for PersonalAxis.
+    """
+
+    def __init__(self):
+        self.token = os.getenv("NOTION_TOKEN")
+        if not self.token:
+            raise ValueError("NOTION_TOKEN not found in environment")
+        
+        self.client = Client(auth=self.token)
+        
+        # Load Database IDs
+        self.db_ids = {
+            "pillars": os.getenv("PILLARS_DB_ID"),
+            "lt_goals": os.getenv("LT_GOALS_DB_ID"),
+            "habits": os.getenv("HABITS_DB_ID"),
+            "periodic_goals": os.getenv("PERIODIC_GOALS_DB_ID"),
+            "actions": os.getenv("ACTIONS_DB_ID"),
+            "journal": os.getenv("JOURNAL_DB_ID"),
+            "reviews": os.getenv("REVIEWS_DB_ID"),
+        }
+        
+        # Validate that all required IDs are present
+        missing_ids = [name for name, db_id in self.db_ids.items() if not db_id]
+        if missing_ids:
+            print(f"Warning: Missing database IDs for: {', '.join(missing_ids)}")
+
+    def _safe_query(self, database_id: str, query_filter: Optional[Dict] = None) -> List[Dict]:
+        """
+        Safely query a Notion database with error handling.
+        """
+        if not database_id:
+            print(f"Error: Database ID missing for query.")
+            return []
+
+        try:
+            results = []
+            has_more = True
+            start_cursor = None
+            
+            while has_more:
+                response = self.client.databases.query(
+                    database_id=database_id,
+                    filter=query_filter,
+                    start_cursor=start_cursor
+                )
+                results.extend(response.get("results", []))
+                has_more = response.get("has_more", False)
+                start_cursor = response.get("next_cursor")
+                
+            return results
+        except APIResponseError as e:
+            print(f"Notion API Error: {e}")
+            return []
+        except Exception as e:
+            print(f"Unexpected error querying database: {e}")
+            return []
+
+    def fetch_all_pillars(self) -> List[Dict]:
+        """
+        Fetch all active pillars from Notion.
+        
+        Returns:
+            List of pillar objects.
+        """
+        pillar_filter = {
+            "property": "Durum",
+            "select": {
+                "equals": "Aktif"
+            }
+        }
+        return self._safe_query(self.db_ids["pillars"], pillar_filter)
+
+    def fetch_active_goals(self, period_type: Optional[str] = None, period: Optional[str] = None) -> List[Dict]:
+        """
+        Fetch active periodic goals.
+        
+        Args:
+            period_type: Type of period (Yıllık, Çeyreklik, Aylık, Haftalık)
+            period: Period identifier (e.g., "2026", "2026-Q1")
+            
+        Returns:
+            List of goal objects.
+        """
+        filters = []
+        
+        # Always filter for non-completed/non-deferred goals unless specific ones requested?
+        # For context building, we usually want "Devam Ediyor" or "Başlanmadı"
+        filters.append({
+            "property": "Durum",
+            "select": {
+                "does_not_equal": "Ertelendi"
+            }
+        })
+        filters.append({
+            "property": "Durum",
+            "select": {
+                "does_not_equal": "Tamamlandı"
+            }
+        })
+        
+        if period_type:
+            filters.append({
+                "property": "Dönem Tipi",
+                "select": {
+                    "equals": period_type
+                }
+            })
+            
+        if period:
+            filters.append({
+                "property": "Dönem",
+                "rich_text": {
+                    "equals": period
+                }
+            })
+            
+        query_filter = {"and": filters} if len(filters) > 1 else filters[0]
+        return self._safe_query(self.db_ids["periodic_goals"], query_filter)
+
+    def fetch_active_habits(self) -> List[Dict]:
+        """
+        Fetch all active habits.
+        
+        Returns:
+            List of habit objects.
+        """
+        habit_filter = {
+            "property": "Durum",
+            "select": {
+                "equals": "Aktif"
+            }
+        }
+        return self._safe_query(self.db_ids["habits"], habit_filter)
+
+    def fetch_recent_journals(self, days: int = 7) -> List[Dict]:
+        """
+        Fetch journal entries from the last X days.
+        """
+        # Note: We need a Date filter. The 'Tarih' property is the Date objects.
+        cutoff_date = (datetime.datetime.now() - datetime.timedelta(days=days)).isoformat()
+        
+        journal_filter = {
+            "property": "Tarih",
+            "date": {
+                "on_or_after": cutoff_date
+            }
+        }
+        
+        # Sort by date descending
+        try:
+            response = self.client.databases.query(
+                database_id=self.db_ids["journal"],
+                filter=journal_filter,
+                sorts=[{"property": "Tarih", "direction": "descending"}]
+            )
+            return response.get("results", [])
+        except Exception as e:
+            print(f"Error fetching recent journals: {e}")
+            return []
+
+    def fetch_tasks(self, date: Optional[str] = None) -> List[Dict]:
+        """
+        Fetch tasks for a specific day.
+        
+        Args:
+            date: ISO date string (YYYY-MM-DD). Defaults to today.
+        """
+        if not date:
+            import datetime
+            date = datetime.datetime.now().strftime("%Y-%m-%d")
+            
+        task_filter = {
+            "and": [
+                {
+                    "property": "Yapma Tarihi",
+                    "date": {
+                        "on_or_before": date
+                    }
+                },
+                {
+                    "property": "Durum",
+                    "select": {
+                        "equals": "Aktif"
+                    }
+                }
+            ]
+        }
+        return self._safe_query(self.db_ids["actions"], task_filter)
+
+    def create_journal_entry(self, date_str: str, title: str, content: str, emotions: List[str] = None, insights: str = None) -> str:
+        """
+        Create a new journal entry in Notion.
+        
+        Args:
+            date_str: ISO date string (YYYY-MM-DD)
+            title: Title for the entry (usually the date code)
+            content: Raw conversation content
+            emotions: List of detected emotions
+            insights: Extracted insights
+            
+        Returns:
+            ID of the created page.
+        """
+        if not self.db_ids["journal"]:
+            return "Error: Journal DB ID missing"
+
+        properties = {
+            "Tarih Kodu": {"title": [{"text": {"content": title}}]},
+            "Tarih": {"date": {"start": date_str}},
+        }
+        
+        # We could add emotions as multi-select if the property existed
+        # For now, we'll put everything in the page content
+        
+        children = [
+            {
+                "object": "block",
+                "type": "heading_2",
+                "heading_2": {"rich_text": [{"text": {"content": "Giriş"}}]}
+            },
+            {
+                "object": "block",
+                "type": "paragraph",
+                "paragraph": {"rich_text": [{"text": {"content": content[:2000]}}]} # Notion limit per block
+            }
+        ]
+        
+        if emotions:
+            children.extend([
+                {"object": "block", "type": "heading_2", "heading_2": {"rich_text": [{"text": {"content": "Duygular"}}]}},
+                {"object": "block", "type": "paragraph", "paragraph": {"rich_text": [{"text": {"content": ", ".join(emotions)}}]}}
+            ])
+            
+        if insights:
+            children.extend([
+                {"object": "block", "type": "heading_2", "heading_2": {"rich_text": [{"text": {"content": "Önemli İçgörüler"}}]}},
+                {"object": "block", "type": "paragraph", "paragraph": {"rich_text": [{"text": {"content": insights}}]}}
+            ])
+
+        try:
+            response = self.client.pages.create(
+                parent={"database_id": self.db_ids["journal"]},
+                properties=properties,
+                children=children
+            )
+            return response["id"]
+        except Exception as e:
+            print(f"Error creating journal entry: {e}")
+            return ""
+
+    def create_task(self, name: str, priority: str = "P3", date: str = None, status: str = "Aktif", pillar_id: str = None) -> str:
+        """
+        Create a new task in actions database.
+        """
+        if not self.db_ids["actions"]:
+            return ""
+            
+        if not date:
+            date = datetime.datetime.now().strftime("%Y-%m-%d")
+
+        properties = {
+            "Ad": {"title": [{"text": {"content": name}}]},
+            "Öncelik": {"select": {"name": priority}},
+            "Yapma Tarihi": {"date": {"start": date}},
+            "Durum": {"select": {"name": status}}
+        }
+        
+        if pillar_id:
+            properties["Sütun"] = {"relation": [{"id": pillar_id}]}
+
+        try:
+            response = self.client.pages.create(
+                parent={"database_id": self.db_ids["actions"]},
+                properties=properties
+            )
+            return response["id"]
+        except Exception as e:
+            print(f"Error creating task: {e}")
+            return ""
