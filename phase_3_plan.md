@@ -17,39 +17,39 @@ The orchestration layer is a Python-based service responsible for fetching data 
 ## 🎯 Task Breakdown
 
 ### Task 3.1: Environment & Dependency Setup
-- [ ] Update `requirements.txt` with:
+- [x] Update `requirements.txt` with:
   - `notion-client`
   - `python-dotenv`
   - `click` or `argparse` (for CLI)
-- [ ] Verify `.env` contains:
+- [x] Verify `.env` contains:
   - `NOTION_TOKEN`
   - Database IDs for: Pillars, Long-term Goals, Periodic Goals, Daily Journal, Review Sessions, Tasks, Habits.
 
 ### Task 3.2: Implement Notion API Client (`notion_client.py`)
 Implement the following functions following [MEMORY[general.md]](memory://general.md) rules:
 - **Read Operations:**
-  - `fetch_all_pillars()`
-  - `fetch_active_goals(period_type, period)`
-  - `fetch_active_habits()`
-  - `fetch_recent_journals(days=7)`
-  - `fetch_tasks(date)`
+  - [x] `fetch_all_pillars()`
+  - [x] `fetch_active_goals(period_type, period)`
+  - [x] `fetch_active_habits()`
+  - [x] `fetch_recent_journals(days=7)`
+  - [x] `fetch_tasks(date)`
 - **Write Operations:**
-  - `create_journal_entry(date, content_page, habits_completed)`
-  - `create_task(name, priority, date, status, pillar_id, goal_id)`
-  - `update_goal_progress(goal_id, progress, status)`
-  - `create_review_session(review_type, period, content_page, related_goals)`
+  - [x] `create_journal_entry(date, content_page, habits_completed)`
+  - [x] `create_task(name, priority, date, status, pillar_id, goal_id)`
+  - [x] `update_goal_progress(goal_id, progress, status)`
+  - [x] `create_review_session(review_type, period, content_page, related_goals)`
 
 ### Task 3.3: Build Context Aggregation Service (`context_builder.py`)
-- **Daily Context:** Combine pillars, current goals, recent reflections, and today's tasks into a Turkish Markdown format.
-- **Review Context:** Aggregate period-specific data (e.g., all journals from "2026-W2") for strategic AI analysis.
+- [x] **Daily Context:** Combine pillars, current goals, recent reflections, and today's tasks into a Turkish Markdown format.
+- [x] **Review Context:** Aggregate period-specific data (e.g., all journals from "2026-W2") for strategic AI analysis.
 
 ### Task 3.4: Create Sync Utilities & CLI (`main.py`)
 - Implement CLI commands:
-  - `personalaxis daily-context`: Writes `output/context.md`.
-  - `personalaxis save-journal`: Robust parsing of JSON-formatted AI summary and updates Notion.
-  - `personalaxis weekly-review`: Writes `output/review_context.md`.
-  - `personalaxis save-review <type>`: Syncs review results to Notion.
-  - `personalaxis habits`: Minimalist habit checklist in terminal.
+  - [x] `personalaxis daily-context`: Writes `output/context.md`.
+  - [x] `personalaxis save-journal`: Robust parsing of JSON-formatted AI summary and updates Notion.
+  - [x] `personalaxis weekly-review`: Writes `output/review_context.md`.
+  - [x] `personalaxis save-review <type>`: Syncs review results to Notion.
+  - [x] `personalaxis habits`: Minimalist habit checklist in terminal.
 
 ---
 
