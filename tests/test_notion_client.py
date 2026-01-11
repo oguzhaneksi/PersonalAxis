@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from orchestration.notion_client import NotionClient
+from orchestration.notion_service import NotionClient
 
 @pytest.fixture
 def mock_env(monkeypatch):
@@ -18,7 +18,7 @@ def test_notion_client_init(mock_env):
     assert client.token == "fake_token"
     assert client.db_ids["pillars"] == "pillars_id"
 
-@patch("orchestration.notion_client.Client")
+@patch("orchestration.notion_service.Client")
 def test_fetch_all_pillars(MockNotion, mock_env):
     # Setup mock response
     mock_instance = MockNotion.return_value
@@ -34,7 +34,7 @@ def test_fetch_all_pillars(MockNotion, mock_env):
     assert pillars[0]["id"] == "page1"
     mock_instance.databases.query.assert_called_once()
 
-@patch("orchestration.notion_client.Client")
+@patch("orchestration.notion_service.Client")
 def test_create_task(MockNotion, mock_env):
     mock_instance = MockNotion.return_value
     mock_instance.pages.create.return_value = {"id": "new_task_id"}

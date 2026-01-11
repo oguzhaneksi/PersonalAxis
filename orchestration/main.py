@@ -59,7 +59,7 @@ def review_context(review_type, period):
 def habits():
     """Show today's habit checklist (Sync from Notion)."""
     try:
-        from orchestration.notion_client import NotionClient
+        from orchestration.notion_service import NotionClient
         client = NotionClient()
         habits = client.fetch_active_habits()
         
@@ -72,6 +72,27 @@ def habits():
                 freq = h["properties"]["Frekans"]["select"]["name"]
                 click.echo(f"☐ {name} ({freq})")
         click.echo("")
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
+
+@cli.command()
+@click.option('--type', 'review_type', type=click.Choice(['weekly', 'monthly', 'quarterly', 'yearly']), required=True)
+@click.option('--period', required=True, help="e.g., 2026-W1, 2026-01, 2026-Q1, 2026")
+def save_review(review_type, period):
+    """Save a periodic review session from ChatGPT output."""
+    click.echo(f"Paste the ChatGPT {review_type} summary (JSON) below (press Ctrl-D or Ctrl-Z to finish):")
+    raw_content = sys.stdin.read()
+    
+    if not raw_content.strip():
+        click.echo("Aborted: No content provided.")
+        return
+
+    try:
+        generator = ContextGenerator()
+        if generator.save_review(review_type, period, raw_content):
+            click.echo("Successfully saved review and updated goals!")
+        else:
+            click.echo("Failed to save review.")
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
 

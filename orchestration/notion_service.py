@@ -289,3 +289,76 @@ class NotionClient:
         except Exception as e:
             print(f"Error creating task: {e}")
             return ""
+
+    def create_review_session(self, review_type: str, period: str, summary: str, assessment: str, wins: List[str] = None, challenges: List[str] = None) -> str:
+        """
+        Create a new review session entry in Notion.
+        """
+        if not self.db_ids["reviews"]:
+            return ""
+
+        properties = {
+            "Ad": {"title": [{"text": {"content": f"{period} {review_type.capitalize()} Değerlendirme"}}]},
+            "Tip": {"select": {"name": review_type.capitalize()}},
+            "Dönem": {"rich_text": [{"text": {"content": period}}]},
+            "Değerlendirme": {"select": {"name": assessment}},
+        }
+
+        children = [
+            {"object": "block", "type": "paragraph", "paragraph": {"rich_text": [{"text": {"content": summary[:2000]}}]}}
+        ]
+
+        if wins:
+            children.append({"object": "block", "type": "heading_3", "heading_3": {"rich_text": [{"text": {"content": "Kazanımlar"}}]}})
+            for win in wins:
+                children.append({"object": "block", "type": "bulleted_list_item", "bulleted_list_item": {"rich_text": [{"text": {"content": win}}]}})
+
+        if challenges:
+            children.append({"object": "block", "type": "heading_3", "heading_3": {"rich_text": [{"text": {"content": "Zorluklar"}}]}})
+            for ch in challenges:
+                children.append({"object": "block", "type": "bulleted_list_item", "bulleted_list_item": {"rich_text": [{"text": {"content": ch}}]}})
+
+        try:
+            response = self.client.pages.create(
+                parent={"database_id": self.db_ids["reviews"]},
+                properties=properties,
+                children=children
+            )
+            return response["id"]
+        except Exception as e:
+            print(f"Error creating review session: {e}")
+            return ""
+
+    def update_goal_progress(self, goal_id: str, status: Optional[str] = None) -> bool:
+        """
+        Update a goal's status in Notion.
+        Note: Progress is usually a formula or rollup in Notion, so we mostly update Status.
+        """
+        properties = {}
+        if status:
+            properties["Durum"] = {"select": {"name": status}}
+
+        if not properties:
+            return True
+
+        try:
+            self.client.pages.update(page_id=goal_id, properties=properties)
+            return True
+        except Exception as e:
+            print(f"Error updating goal {goal_id}: {e}")
+            return False
+
+    def find_goal_by_name(self, name: str) -> Optional[str]:
+        """
+        Find a goal ID by its exact name.
+        """
+        query_filter = {
+            "property": "Ad",
+            "title": {
+                "equals": name
+            }
+        }
+        results = self._safe_query(self.db_ids["periodic_goals"], query_filter)
+        if results:
+            return results[0]["id"]
+        return None

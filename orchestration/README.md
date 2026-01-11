@@ -32,14 +32,24 @@ python -m orchestration.main save-journal
 Follow the prompts to paste the content. It will automatically extract emotions, insights, and create tasks.
 
 ### 4. Periodic Reviews
+Generate context for strategic review:
 ```bash
-python -m orchestration.main review-context --type weekly --period 2026-W2
+python -m orchestration.main review-context --type weekly --period 2026-W02
+```
+After the session, save results back to Notion:
+```bash
+python -m orchestration.main save-review --type weekly --period 2026-W02
 ```
 
 ### 5. Check Habits
 ```bash
 python -m orchestration.main habits
 ```
+
+## AI Integration (Phase 4)
+System prompts and configurations for Gemini (Daily Coach) and ChatGPT (Strategic Reviewer) are located in the [/prompts](../prompts/) directory.
+
+Refer to [prompts/README.md](../prompts/README.md) for detailed setup instructions.
 
 ## Dependencies
 - `notion-client`

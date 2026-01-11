@@ -2,7 +2,7 @@ import os
 import datetime
 import json
 from typing import Optional
-from .notion_client import NotionClient
+from .notion_service import NotionClient
 from .context_builder import ContextBuilder
 
 class ContextGenerator:
@@ -136,5 +136,59 @@ class ContextGenerator:
                     # Fallback for unexpected formats
                     self.notion.create_task(name=str(item), priority="P3")
                     print(f"  + Task created: {item} (P3 - Default)")
+            return True
+        return False
+
+    def save_review(self, review_type: str, period: str, raw_input: str) -> bool:
+        """
+        Parses JSON-formatted AI review summary and saves to Notion.
+        """
+        try:
+            json_str = raw_input.strip()
+            if json_str.startswith("```json"):
+                json_str = json_str.replace("```json", "").replace("```", "").strip()
+            elif json_str.startswith("```"):
+                 json_str = json_str.replace("```", "").strip()
+            
+            data = json.loads(json_str)
+            
+            summary = data.get("review_summary", "")
+            assessment = data.get("period_assessment", "Karışık")
+            wins = data.get("wins", [])
+            challenges = data.get("challenges", [])
+            goal_updates = data.get("goal_updates", [])
+            
+        except (json.JSONDecodeError, AttributeError) as e:
+            print(f"✗ Error: Failed to parse AI review output as JSON.\nDetails: {e}")
+            return False
+
+        # Save Review Session
+        review_id = self.notion.create_review_session(
+            review_type=review_type,
+            period=period,
+            summary=summary,
+            assessment=assessment,
+            wins=wins,
+            challenges=challenges
+        )
+
+        if review_id:
+            print(f"✓ Review session saved to Notion (ID: {review_id})")
+            
+            # Update goals
+            for update in goal_updates:
+                goal_name = update.get("goal_name")
+                new_status = update.get("new_status")
+                
+                if goal_name and new_status:
+                    # Search for goal ID by name
+                    goal_id = self.notion.find_goal_by_name(goal_name)
+                    if goal_id:
+                        if self.notion.update_goal_progress(goal_id, status=new_status):
+                            print(f"  + Goal updated: {goal_name} -> {new_status}")
+                        else:
+                            print(f"  - Failed to update goal: {goal_name}")
+                    else:
+                        print(f"  - Goal not found: {goal_name}")
             return True
         return False

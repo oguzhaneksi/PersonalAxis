@@ -21,9 +21,9 @@
 - [x] Implement robust AI output parsing (JSON support)
 
 ## Phase 4: AI Integration
-- [ ] Design ChatGPT Custom GPT / Gemini Configuration
-- [ ] Create context injection prompts (Daily Coach)
-- [ ] Create context injection prompts (Periodic Reviewer)
+- [x] Design ChatGPT Custom GPT / Gemini Configuration
+- [x] Create context injection prompts (Daily Coach)
+- [x] Create context injection prompts (Periodic Reviewer)
 - [ ] Build automated review triggers (weekly/monthly/quarterly/yearly)
 
 ## Phase 5: Automation & Workflows
