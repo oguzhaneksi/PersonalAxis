@@ -47,3 +47,51 @@ def test_create_task(MockNotion, mock_env):
     args, kwargs = mock_instance.pages.create.call_args
     assert kwargs["properties"]["Ad"]["title"][0]["text"]["content"] == "Test Task"
     assert kwargs["properties"]["Öncelik"]["select"]["name"] == "P1"
+
+@patch("orchestration.notion_service.Client")
+def test_fetch_page_content(MockNotion, mock_env):
+    mock_instance = MockNotion.return_value
+    # Mock blocks response
+    mock_instance.blocks.children.list.return_value = {
+        "results": [
+            {
+                "type": "paragraph",
+                "paragraph": {"rich_text": [{"plain_text": "Sample paragraph"}]}
+            },
+            {
+                "type": "heading_2",
+                "heading_2": {"rich_text": [{"plain_text": "Section Title"}]}
+            },
+            {
+                "type": "bulleted_list_item",
+                "bulleted_list_item": {"rich_text": [{"plain_text": "Item 1"}]}
+            }
+        ],
+        "has_more": False
+    }
+    
+    client = NotionClient()
+    content = client.fetch_page_content("fake_page_id")
+    
+    assert "Sample paragraph" in content
+    assert "## Section Title" in content
+    assert "- Item 1" in content
+    mock_instance.blocks.children.list.assert_called_once_with(block_id="fake_page_id", start_cursor=None)
+
+def test_parse_blocks_to_markdown():
+    client = NotionClient.__new__(NotionClient) # Create without init to avoid env check
+    blocks = [
+        {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "Para"}]}},
+        {"type": "divider", "divider": {}},
+        {"type": "to_do", "to_do": {"rich_text": [{"plain_text": "Task"}], "checked": True}},
+        {"type": "quote", "quote": {"rich_text": [{"plain_text": "Quote"}]}},
+        {"type": "callout", "callout": {"rich_text": [{"plain_text": "Callout"}], "icon": {"emoji": "💡"}}}
+    ]
+    
+    md = client._parse_blocks_to_markdown(blocks)
+    
+    assert "Para" in md
+    assert "---" in md
+    assert "- [x] Task" in md
+    assert "> Quote" in md
+    assert "> 💡 Callout" in md

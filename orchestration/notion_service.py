@@ -67,6 +67,71 @@ class NotionClient:
             print(f"Unexpected error querying database: {e}")
             return []
 
+    def fetch_page_content(self, page_id: str) -> str:
+        """
+        Fetch all blocks for a page and convert to a basic Markdown-like string.
+        """
+        try:
+            blocks = []
+            has_more = True
+            start_cursor = None
+            
+            while has_more:
+                response = self.client.blocks.children.list(
+                    block_id=page_id,
+                    start_cursor=start_cursor
+                )
+                blocks.extend(response.get("results", []))
+                has_more = response.get("has_more", False)
+                start_cursor = response.get("next_cursor")
+                
+            return self._parse_blocks_to_markdown(blocks)
+        except Exception as e:
+            print(f"Error fetching page content for {page_id}: {e}")
+            return ""
+
+    def _parse_blocks_to_markdown(self, blocks: List[Dict]) -> str:
+        """
+        Convert Notion blocks to a simplified Markdown string.
+        """
+        md_lines = []
+        for block in blocks:
+            b_type = block.get("type")
+            if not b_type:
+                continue
+                
+            content = block.get(b_type, {})
+            text_items = content.get("rich_text", [])
+            plain_text = "".join([t.get("plain_text", "") for t in text_items])
+            
+            if not plain_text and b_type != "divider":
+                continue
+                
+            if b_type == "paragraph":
+                md_lines.append(plain_text)
+            elif b_type == "heading_1":
+                md_lines.append(f"# {plain_text}")
+            elif b_type == "heading_2":
+                md_lines.append(f"## {plain_text}")
+            elif b_type == "heading_3":
+                md_lines.append(f"### {plain_text}")
+            elif b_type == "bulleted_list_item":
+                md_lines.append(f"- {plain_text}")
+            elif b_type == "numbered_list_item":
+                md_lines.append(f"1. {plain_text}")
+            elif b_type == "to_do":
+                checked = "x" if content.get("checked") else " "
+                md_lines.append(f"- [{checked}] {plain_text}")
+            elif b_type == "quote":
+                md_lines.append(f"> {plain_text}")
+            elif b_type == "divider":
+                md_lines.append("---")
+            elif b_type == "callout":
+                icon = content.get("icon", {}).get("emoji", "ℹ️")
+                md_lines.append(f"> {icon} {plain_text}")
+                
+        return "\n\n".join(md_lines)
+
     def fetch_all_pillars(self) -> List[Dict]:
         """
         Fetch all active pillars from Notion.

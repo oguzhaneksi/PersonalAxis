@@ -75,3 +75,17 @@ def test_parse_gemini_output_explicit_date(mocker):
     assert success is True
     args, kwargs = generator.notion.create_journal_entry.call_args
     assert kwargs["date_str"] == past_date
+
+def test_enrich_journals_with_content(mocker):
+    mock_notion = mocker.patch("orchestration.context_generator.NotionClient")
+    generator = ContextGenerator()
+    
+    journals = [{"id": "j1"}, {"id": "j2"}]
+    generator.notion.fetch_page_content.side_effect = ["Content 1", "Content 2"]
+    
+    enriched = generator._enrich_journals_with_content(journals)
+    
+    assert len(enriched) == 2
+    assert enriched[0]["content"] == "Content 1"
+    assert enriched[1]["content"] == "Content 2"
+    assert generator.notion.fetch_page_content.call_count == 2

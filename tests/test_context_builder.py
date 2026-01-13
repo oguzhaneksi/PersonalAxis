@@ -49,3 +49,17 @@ def test_build_daily_context_with_data():
     assert "- **Sağlık** (Body)" in context
     assert "- [Aylık] 5kg Ver (İlerleme: %20)" in context
     assert "- Kitap Oku (Günlük) [Son: 2026-01-10]" in context
+
+def test_build_daily_context_with_journals():
+    builder = ContextBuilder()
+    journals = [
+        {
+            "properties": {"Tarih Kodu": {"type": "title", "title": [{"plain_text": "2026-01-12"}]}},
+            "content": "Today I built a new feature."
+        }
+    ]
+    
+    context = builder.build_daily_context([], [], [], journals, [])
+    
+    assert "### 2026-01-12" in context
+    assert "Today I built a new feature." in context

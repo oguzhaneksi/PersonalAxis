@@ -96,10 +96,14 @@ class ContextBuilder:
             # Show last 3-5 entries
             for j in recent_journals[:5]:
                 date = self._safe_get_text(j["properties"]["Tarih Kodu"])
-                # We can't easily get the page content here without fetching blocks.
-                # For now, we will just list the dates or metadata. 
-                # Future: fetch first few blocks of page content for context.
-                context.append(f"- {date}")
+                content = j.get("content", "")
+                
+                context.append(f"### {date}")
+                if content:
+                    context.append(content)
+                else:
+                    context.append("*İçerik bulunamadı.*")
+                context.append("")
         else:
             context.append("- Yakın zamanda kaydedilmiş günce bulunmuyor.")
         context.append("")
@@ -132,8 +136,14 @@ class ContextBuilder:
         if journals:
             for j in journals:
                 date = self._safe_get_text(j["properties"]["Tarih Kodu"])
-                # Ideally we'd fetch the content, but for now just list the days
-                context.append(f"- {date}")
+                content = j.get("content", "")
+                
+                context.append(f"### {date}")
+                if content:
+                    context.append(content)
+                else:
+                    context.append("*İçerik bulunamadı.*")
+                context.append("")
         else:
             context.append("- Bu dönemde kaydedilmiş günce bulunamadı.")
         context.append("")

@@ -22,7 +22,7 @@
 
 ## Phase 4: AI Integration
 - [x] Design ChatGPT Custom GPT / Gemini Configuration
-- [x] Create context injection prompts (Daily Coach & Reflection Partner)
+- [x] Create context injection prompts (Daily Coach - JARVIS Persona)
 - [x] Create context injection prompts (Periodic Reviewer)
 - [x] Build review triggers and save mechanism (CLI save-review)
 

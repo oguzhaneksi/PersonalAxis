@@ -39,7 +39,9 @@ PersonalAxis uses a local-first, privacy-conscious approach. Instead of direct A
 
 ```
 prompts/
-├── daily_coach_system.md      # Gemini Gem system prompt
+├── README.md                  # This guide
+├── checklist.md               # Prompt quality & consistency checklist
+├── daily_coach_system.md      # Gemini Gem system prompt (JARVIS)
 ├── strategic_reviewer_system.md # ChatGPT Custom GPT system prompt
 └── review_templates/          # Period-specific review guidance
     ├── weekly_review.md

@@ -6,9 +6,10 @@ We have successfully integrated the AI layer into PersonalAxis. This phase focus
 
 ### 1. AI Prompt Library
 Created a structured prompt library in the `prompts/` directory:
-- **Daily Coach & Reflection Partner (Gemini)**: System prompt for empathetic daily coaching, habit checks, and planning. It serves as a reflection partner that challenges the user with alternative perspectives.
-- **Strategic Reviewer (ChatGPT)**: System prompt for deep analytical reviews of life pillars and goals, with a strict focus on data and objective patterns.
+- **Daily Coach (JARVIS)**: System prompt for a strategic, masculine, and samimi "Aga" persona. JARVIS challenges the user, uses engineering terminology, and applies the P1-P2-P3 framework for analysis.
+- **Strategic Reviewer (ChatGPT)**: System prompt for deep analytical reviews of life pillars and goals, with strict constraints against hallucinations and identity labeling.
 - **Review Templates**: Specific guidance for Weekly, Monthly, Quarterly, and Yearly reviews.
+- **Quality Checklist**: [prompts/checklist.md](./prompts/checklist.md) to ensure consistency and adherence to constraints.
 - **Usage Guide**: [prompts/README.md](./prompts/README.md) for quick setup.
 
 ### 2. CLI Enhancements

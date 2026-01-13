@@ -32,11 +32,12 @@ Phase 4 bridges the orchestration layer with AI platforms. Since PersonalAxis is
       └── yearly_review.md
   ```
 
-### Task 4.2: Daily Coach Prompt (Gemini)
+### Task 4.2: Daily Coach Prompt (Gemini - JARVIS)
 - [x] Create `prompts/daily_coach_system.md`
-  - Role definition: Daily coach & Reflection partner
+  - Role definition: JARVIS (Strategic 'Aga' Persona)
   - Context expectations: `context.md` format
-  - Conversation modes: Brain dump, reflection, planning + alternative perspectives
+  - Conversation modes: Brain dump (Analysis), debug mode, P1-P2-P3 framework
+  - Tone: Engineering/Technical + masculine samimi
   - Output contract: JSON schema for `save-journal`
 
 ### Task 4.3: Periodic Reviewer Prompt (ChatGPT)
@@ -156,11 +157,15 @@ Since this phase is primarily prompt creation:
    ```
 
 ### Prompt Quality Checklist
-- [ ] Clear role definition with boundaries
-- [ ] Context format matches `context_builder.py` output
-- [ ] JSON schemas match `context_generator.py` parsing
-- [ ] Turkish/English conventions consistent
-- [ ] All review periods covered (W/M/Q/Y)
+A dedicated checklist is available at [prompts/checklist.md](./prompts/checklist.md).
+
+Key Verification Points:
+- [x] Clear role definition with boundaries (No identity labeling, no diagnosis)
+- [x] Perspective challenge for Daily Coach (Mirror/Counter-perspective)
+- [x] Context format matches `context_builder.py` output
+- [x] JSON schemas match `context_generator.py` parsing
+- [x] Turkish/English conventions consistent
+- [x] All review periods covered (W/M/Q/Y)
 
 ---
 

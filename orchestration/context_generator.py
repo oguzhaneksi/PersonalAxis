@@ -1,7 +1,7 @@
 import os
 import datetime
 import json
-from typing import Optional
+from typing import Optional, List, Dict
 from .notion_service import NotionClient
 from .context_builder import ContextBuilder
 
@@ -31,7 +31,7 @@ class ContextGenerator:
             pillars=pillars,
             goals=goals,
             habits=habits,
-            recent_journals=journals,
+            recent_journals=self._enrich_journals_with_content(journals[:5]), # Only last 5 for daily
             tasks=tasks
         )
 
@@ -67,7 +67,7 @@ class ContextGenerator:
             review_type=review_type,
             period=period,
             goals=goals,
-            journals=journals
+            journals=self._enrich_journals_with_content(journals)
         )
 
         file_path = os.path.join(self.output_dir, f"{review_type}_{period}_context.md")
@@ -138,6 +138,18 @@ class ContextGenerator:
                     print(f"  + Task created: {item} (P3 - Default)")
             return True
         return False
+
+    def _enrich_journals_with_content(self, journals: List[Dict]) -> List[Dict]:
+        """
+        Helper to fetch page content for a list of journal entries.
+        """
+        print(f"Enriching {len(journals)} journal entries with content...")
+        for j in journals:
+            page_id = j["id"]
+            content = self.notion.fetch_page_content(page_id)
+            # Add content to the journal object for the builder to use
+            j["content"] = content
+        return journals
 
     def save_review(self, review_type: str, period: str, raw_input: str) -> bool:
         """
