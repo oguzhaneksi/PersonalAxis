@@ -41,8 +41,11 @@ def test_client():
     print(f"Found {len(journals)} recent journal entries.")
     for j in journals:
         # Tarih Kodu is the title
-        title = j["properties"]["Tarih Kodu"]["title"][0]["plain_text"]
-        print(f" - {title}")
+        title = j["properties"]["Tarih Kodu"]["title"][0]["plain_text"] if j["properties"]["Tarih Kodu"]["title"] else "N/A"
+        date = j["properties"]["Tarih"]["date"]["start"] if j["properties"]["Tarih"]["date"] else "N/A"
+        week = j["properties"].get("Hafta", {}).get("rich_text", [{}])[0].get("plain_text", "N/A") if j["properties"].get("Hafta", {}).get("rich_text") else "N/A"
+        month = j["properties"].get("Ay", {}).get("rich_text", [{}])[0].get("plain_text", "N/A") if j["properties"].get("Ay", {}).get("rich_text") else "N/A"
+        print(f"  - {title} ({date}) [Hafta: {week}, Ay: {month}]")
 
     print("\n5. Testing fetch_tasks...")
     tasks = client.fetch_tasks()

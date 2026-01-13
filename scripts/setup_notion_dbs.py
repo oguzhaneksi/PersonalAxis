@@ -192,15 +192,12 @@ def main():
 
     # 6. Create Günlük Günce (Journal)
     journal_schema = {
-        "Tarih": {"title": {}}, # Note: Title must be text, usually we name it "Tarih" but type is Title. We'll use a separate Date property for actual date if needed, or just ISO string in Title. Plan says Date/Title.
-        # Notion DBs MUST have a Title property. We'll use 'Ad' or 'Tarih' as title (text) and a separate Date property?
-        # Plan says: "Tarih (Title/Date)". In Notion, the primary column is always Title (Text). 
-        # So we will interpret this as: Title property named "Tarih" (holds text representation) + A Date property named "Date"?
-        # Or just Title named "Tarih (ID)" and a separate Date property.
-        # Let's stick to Title named "Baslik" (Title) and "Tarih" (Date).
-        # Wait, plan says "Tarih (Title/Date)". I'll make Title called "Tarih Kodu" (e.g. 2026-01-04) and a Date property "Tarih".
         "Tarih Kodu": {"title": {}}, 
         "Tarih": {"date": {}},
+        "Hafta": {"rich_text": {}},  # Format: 2026-W02
+        "Ay": {"rich_text": {}},      # Format: 2026-01
+        "Çeyrek": {"rich_text": {}},  # Format: 2026-Q3
+        "Yıl": {"rich_text": {}},     # Format: 2026
         "İlgili Hedefler": {"relation": {"database_id": periodic_goals_id, "dual_property": {}}},
         "Sütunlar": {"relation": {"database_id": pillars_id, "dual_property": {}}},
         # Checkboxes for habits - Dynamic?

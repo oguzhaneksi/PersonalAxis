@@ -132,6 +132,28 @@ class NotionClient:
                 
         return "\n\n".join(md_lines)
 
+    def _calculate_week(self, date_str: str) -> str:
+        """Calculate ISO week format (e.g., 2026-W02) from date string."""
+        dt = datetime.datetime.fromisoformat(date_str)
+        year, week, _ = dt.isocalendar()
+        return f"{year}-W{week:02d}"
+
+    def _calculate_month(self, date_str: str) -> str:
+        """Calculate month format (e.g., 2026-01) from date string."""
+        dt = datetime.datetime.fromisoformat(date_str)
+        return dt.strftime("%Y-%m")
+
+    def _calculate_quarter(self, date_str: str) -> str:
+        """Calculate quarter format (e.g., 2026-Q3) from date string."""
+        dt = datetime.datetime.fromisoformat(date_str)
+        quarter = (dt.month - 1) // 3 + 1
+        return f"{dt.year}-Q{quarter}"
+
+    def _calculate_year(self, date_str: str) -> str:
+        """Calculate year format (e.g., 2026) from date string."""
+        dt = datetime.datetime.fromisoformat(date_str)
+        return str(dt.year)
+
     def fetch_all_pillars(self) -> List[Dict]:
         """
         Fetch all active pillars from Notion.
@@ -235,6 +257,35 @@ class NotionClient:
             print(f"Error fetching recent journals: {e}")
             return []
 
+    def fetch_journals_by_period(self, period_field: str, period_value: str) -> List[Dict]:
+        """
+        Fetch journals filtered by period (Hafta, Ay, Çeyrek, Yıl).
+        
+        Args:
+            period_field: "Hafta", "Ay", "Çeyrek", or "Yıl"
+            period_value: e.g., "2026-W02", "2026-01", "2026-Q1", "2026"
+            
+        Returns:
+            List of journal objects matching the period.
+        """
+        journal_filter = {
+            "property": period_field,
+            "rich_text": {
+                "equals": period_value
+            }
+        }
+        
+        try:
+            response = self.client.databases.query(
+                database_id=self.db_ids["journal"],
+                filter=journal_filter,
+                sorts=[{"property": "Tarih", "direction": "descending"}]
+            )
+            return response.get("results", [])
+        except Exception as e:
+            print(f"Error fetching journals by {period_field}={period_value}: {e}")
+            return []
+
     def fetch_tasks(self, date: Optional[str] = None) -> List[Dict]:
         """
         Fetch tasks for a specific day.
@@ -284,6 +335,10 @@ class NotionClient:
         properties = {
             "Tarih Kodu": {"title": [{"text": {"content": title}}]},
             "Tarih": {"date": {"start": date_str}},
+            "Hafta": {"rich_text": [{"text": {"content": self._calculate_week(date_str)}}]},
+            "Ay": {"rich_text": [{"text": {"content": self._calculate_month(date_str)}}]},
+            "Çeyrek": {"rich_text": [{"text": {"content": self._calculate_quarter(date_str)}}]},
+            "Yıl": {"rich_text": [{"text": {"content": self._calculate_year(date_str)}}]},
         }
         
         # We could add emotions as multi-select if the property existed

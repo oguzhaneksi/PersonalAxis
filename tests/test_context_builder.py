@@ -54,7 +54,13 @@ def test_build_daily_context_with_journals():
     builder = ContextBuilder()
     journals = [
         {
-            "properties": {"Tarih Kodu": {"type": "title", "title": [{"plain_text": "2026-01-12"}]}},
+            "properties": {
+                "Tarih Kodu": {"type": "title", "title": [{"plain_text": "2026-01-12"}]},
+                "Hafta": {"type": "rich_text", "rich_text": [{"plain_text": "2026-W02"}]},
+                "Ay": {"type": "rich_text", "rich_text": [{"plain_text": "2026-01"}]},
+                "Çeyrek": {"type": "rich_text", "rich_text": [{"plain_text": "2026-Q1"}]},
+                "Yıl": {"type": "rich_text", "rich_text": [{"plain_text": "2026"}]}
+            },
             "content": "Today I built a new feature."
         }
     ]
