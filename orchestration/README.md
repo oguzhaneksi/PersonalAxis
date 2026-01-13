@@ -29,7 +29,9 @@ After coaching, copy the Gemini summary and run:
 ```bash
 python -m orchestration.main save-journal
 ```
-Follow the prompts to paste the content. It will automatically extract emotions, insights, and create tasks.
+Follow the prompts to paste the content. It will automatically extract emotions, insights, and create tasks. 
+
+**Note:** The system now automatically tags each journal entry with its corresponding **Week** (e.g., 2026-W02), **Month** (e.g., 2026-01), **Quarter** (e.g., 2026-Q1), and **Year** for easier filtering during strategic reviews.
 
 ### 4. Periodic Reviews
 Generate context for strategic review:

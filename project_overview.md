@@ -18,7 +18,7 @@ The system follows **August Bradley's PPV (Pillars, Pipelines, Vaults)** philoso
 - **Uzun Vadeli Hedefler (Long-term Goals)**: 3-5 year vision
 - **Alışkanlıklar & Rutinler (Habits)**: Daily/weekly routines
 - **Periyodik Hedefler (Periodic Goals)**: Time-boxed targets (Yearly/Quarterly/Monthly/Weekly)
-- **Günlük Günce (Daily Journal)**: AI-assisted daily reflections + habit tracking
+- **Günlük Günce (Daily Journal)**: AI-assisted daily reflections + habit tracking (Auto-tagged by Week/Month/Quarter/Year)
 - **Aksiyon Maddeleri (Action Items)**: Executable daily tasks
 - **Değerlendirme Oturumları (Review Sessions)**: Periodic review outcomes
 

@@ -34,7 +34,8 @@ Implement the following functions following [MEMORY[general.md]](memory://genera
   - [x] `fetch_recent_journals(days=7)`
   - [x] `fetch_tasks(date)`
 - **Write Operations:**
-  - [x] `create_journal_entry(date, content_page, habits_completed)`
+  - [x] `create_journal_entry(date, content_page, habits_completed)` 
+    - *Enhancement:* Added automatic tagging for Hafta, Ay, Çeyrek, Yıl.
   - [x] `create_task(name, priority, date, status, pillar_id, goal_id)`
   - [x] `update_goal_progress(goal_id, progress, status)`
   - [x] `create_review_session(review_type, period, content_page, related_goals)`
