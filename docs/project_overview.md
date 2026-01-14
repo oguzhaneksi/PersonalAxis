@@ -86,8 +86,9 @@ A lightweight CLI service that:
 
 ## Project Status
 
-Currently in **Phase 4: AI Integration**
+Currently in **Phase 5: Automation & Workflows**
 - Phase 1 (Foundation & Planning) ✅ Complete
 - Phase 2 (Notion Database Setup) ✅ Complete
 - Phase 3 (Orchestration Layer) ✅ Complete
-- Phases 4-5 (AI, Automation) → Upcoming
+- Phase 4 (AI Integration) ✅ Complete
+- Phase 5 (Automation) → In Progress
