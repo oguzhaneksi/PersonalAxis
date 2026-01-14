@@ -15,7 +15,7 @@ Phase 5 will advance in three main areas:
 
 ### Task 5.1: Periodic Automation (launchd) ✅
 
-On macOS we will create scripts that run automatically using `launchd`:
+On macOS we will create scripts that run automatically using `launchd`. The times are configurable in the installer script:
 
 | Schedule | Command | Trigger |
 |----------|---------|---------|

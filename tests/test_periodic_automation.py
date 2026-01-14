@@ -19,6 +19,14 @@ def test_daily_plist_structure():
     assert "ProgramArguments" in keys
     assert "StartCalendarInterval" in keys
 
+    # Check for placeholder in StartCalendarInterval
+    for i, child in enumerate(dict_elem):
+        if child.tag == "key" and child.text == "StartCalendarInterval":
+            interval_dict = dict_elem[i+1]
+            for j, k in enumerate(interval_dict):
+                if k.tag == "key" and k.text == "Hour":
+                    assert interval_dict[j+1].text == "__DAILY_HOUR__"
+
 def test_weekly_plist_schedule():
     plist_path = "automation/launchd/com.personalaxis.weekly.plist"
     tree = ET.parse(plist_path)
@@ -34,12 +42,12 @@ def test_weekly_plist_schedule():
             interval_dict = dict_elem[i+1]
             interval_keys = [k.text for k in interval_dict.findall("key")]
             assert "Weekday" in interval_keys
-            # Sunday is 7 in launchd plists
+            # Check that placeholders are present in the template plists
             weekday_val = None
             for j, k in enumerate(interval_dict):
                 if k.tag == "key" and k.text == "Weekday":
                     weekday_val = interval_dict[j+1].text
-            assert weekday_val == "7"
+            assert weekday_val == "__WEEKLY_DAY__"
             found_interval = True
             break
     assert found_interval
@@ -54,6 +62,9 @@ def test_install_script_logic():
     # Verify key logic exists
     assert "PROJECT_DIR=" in content
     assert "VENV_PYTHON=" in content
+    assert "DAILY_HOUR=" in content
+    assert "WEEKLY_DAY=" in content
+    assert "MONTHLY_DAY=" in content
     assert "sed -i ''" in content or "sed -i" in content
     assert "launchctl load" in content
 
@@ -70,12 +81,12 @@ def test_monthly_plist_schedule():
             interval_dict = dict_elem[i+1]
             interval_keys = [k.text for k in interval_dict.findall("key")]
             assert "Day" in interval_keys
-            # 1st of the month
+            # Check that placeholders are present in the template plists
             day_val = None
             for j, k in enumerate(interval_dict):
                 if k.tag == "key" and k.text == "Day":
                     day_val = interval_dict[j+1].text
-            assert day_val == "1"
+            assert day_val == "__MONTHLY_DAY__"
             found_interval = True
             break
     assert found_interval
