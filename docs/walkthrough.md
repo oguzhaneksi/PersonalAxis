@@ -65,6 +65,6 @@ Commands:
 ---
 
 ## Next Steps: Phase 5 (Automation)
-- Set up `cron` or `launchd` for automatic context generation.
-- Implement SMART goal validation templates.
-- Build analytics dashboard in Notion.
+- [x] Set up `launchd` for automatic context generation (Completed).
+- [ ] Implement SMART goal validation templates.
+- [ ] Build analytics dashboard in Notion.

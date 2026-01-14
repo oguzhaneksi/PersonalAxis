@@ -15,3 +15,5 @@ orchestration/__pycache__/
 
 # Ignore pytest cache
 .pytest_cache/
+# Ignore logs
+logs/*.log
