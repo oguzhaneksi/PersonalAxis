@@ -1,13 +1,13 @@
 # Phase 5 Implementation Plan: Automation & Workflows
 
-Phase 4 tamamlandı ve AI entegrasyonu (JARVIS + Strategic Reviewer) çalışıyor. Şimdi sistemi **tamamen otonom** hale getirecek otomasyon adımlarına geçiyoruz.
+Phase 4 is completed and the AI integration (JARVIS + Strategic Reviewer) is working. Now we move on to automation steps that will make the system fully autonomous.
 
 ## 📋 Overview
 
-Phase 5 üç ana kategoride gelişim sağlayacak:
-1. **Periodic Automation**: Cron/launchd ile otomatik context üretimi
-2. **SMART Validation**: Hedef kalite kontrolü
-3. **Advanced CLI**: Quick-actions ve validation komutları
+Phase 5 will advance in three main areas:
+1. Periodic Automation: automatic context generation with cron/launchd
+2. SMART Validation: goal quality checks
+3. Advanced CLI: quick-actions and validation commands
 
 ---
 
@@ -15,31 +15,31 @@ Phase 5 üç ana kategoride gelişim sağlayacak:
 
 ### Task 5.1: Periodic Automation (launchd)
 
-macOS'ta `launchd` kullanarak otomatik çalışan scriptler oluşturacağız:
+On macOS we will create scripts that run automatically using `launchd`:
 
 | Schedule | Command | Trigger |
 |----------|---------|---------|
-| Sabah 08:00 | `daily-context` | Yeni güne hazırlık |
-| Pazar 20:00 | `review-context --type weekly` | Haftalık değerlendirme |
-| Ayın son günü | `review-context --type monthly` | Aylık değerlendirme |
+| Morning 08:00 | `daily-context` | Prepare for the new day |
+| Sunday 20:00 | `review-context --type weekly` | Weekly review |
+| Last day of month | `review-context --type monthly` | Monthly review |
 
 **Files to create:**
 - `automation/launchd/com.personalaxis.daily.plist`
-- `automation/launchd/com.personalaxis.weekly.plist`  
+- `automation/launchd/com.personalaxis.weekly.plist`
 - `automation/launchd/com.personalaxis.monthly.plist`
 - `automation/install.sh` (plist installer script)
 - `automation/README.md` (setup guide)
 
 ### Task 5.2: SMART Goal Validation
 
-Hedeflerin SMART kriterlerine uygunluğunu kontrol eden bir validator:
+A validator that checks goals against SMART criteria:
 
-**SMART Kriterleri:**  
-- **S**pecific: Hedef açık mı?
-- **M**easurable: Ölçülebilir metrik var mı?
-- **A**chievable: Ulaşılabilir mi?
-- **R**elevant: Pillar'a bağlı mı?
-- **T**ime-bound: Deadline tanımlı mı?
+SMART Criteria:
+- Specific: Is the goal clear?
+- Measurable: Is there a measurable metric?
+- Achievable: Is it achievable?
+- Relevant: Is it linked to a pillar?
+- Time-bound: Is there a deadline?
 
 **Files to create/modify:**
 - `orchestration/smart_validator.py` (validation logic)
@@ -53,13 +53,13 @@ python -m orchestration.main validate-goals
 
 ### Task 5.3: Advanced CLI Commands
 
-Ek CLI komutları ekleyeceğiz:
+We will add extra CLI commands:
 
 | Command | Description |
 |---------|-------------|
-| `quick-journal` | Hızlı tek satır günce girişi |
-| `goal-status` | Aktif hedeflerin progress özeti |
-| `validate-goals` | SMART validation raporu |
+| `quick-journal` | Quick single-line journal entry |
+| `goal-status` | Summary of active goals' progress |
+| `validate-goals` | SMART validation report |
 
 **Files to modify:**
 - `orchestration/main.py` (add new commands)
@@ -189,21 +189,21 @@ def validate_goal(goal: dict) -> ValidationResult:
 
 | File | Purpose |
 |------|---------|
-| `automation/launchd/com.personalaxis.daily.plist` | Günlük context otomasyonu |
-| `automation/launchd/com.personalaxis.weekly.plist` | Haftalık review otomasyonu |
-| `automation/launchd/com.personalaxis.monthly.plist` | Aylık review otomasyonu |
-| `automation/install.sh` | Otomasyon kurulum scripti |
-| `automation/README.md` | Setup ve kullanım kılavuzu |
-| `orchestration/smart_validator.py` | SMART validation modülü |
-| `logs/` directory | Otomasyon logları |
+| `automation/launchd/com.personalaxis.daily.plist` | Daily context automation |
+| `automation/launchd/com.personalaxis.weekly.plist` | Weekly review automation |
+| `automation/launchd/com.personalaxis.monthly.plist` | Monthly review automation |
+| `automation/install.sh` | Automation installer script |
+| `automation/README.md` | Setup and usage guide |
+| `orchestration/smart_validator.py` | SMART validation module |
+| `logs/` directory | Automation logs |
 
 ### Modified Files
 
 | File | Changes |
 |------|---------|
-| `orchestration/main.py` | `validate-goals`, `quick-journal`, `goal-status` komutları |
-| `orchestration/notion_service.py` | Helper methodlar (gerekirse) |
-| `.gitignore` | `logs/` dizini eklenmeli |
+| `orchestration/main.py` | `validate-goals`, `quick-journal`, `goal-status` commands |
+| `orchestration/notion_service.py` | Helper methods (if necessary) |
+| `.gitignore` | Add `logs/` directory |
 
 ---
 
@@ -223,21 +223,21 @@ Test cases:
 ### Manual Tests
 
 > [!IMPORTANT]
-> Bu testler için gerçek Notion veritabanı erişimi gereklidir.
+> These tests require real Notion database access.
 
-1. **Otomasyon Kurulum Testi**
-   - `automation/install.sh` çalıştır
-   - `launchctl list | grep personalaxis` ile agent'ları kontrol et
-   - Log dosyalarının oluştuğunu doğrula
+1. **Automation Installation Test**
+   - Run `automation/install.sh`
+   - Check agents with `launchctl list | grep personalaxis`
+   - Verify that log files are created
 
-2. **SMART Validation Komutu**
-   - `python -m orchestration.main validate-goals` çalıştır
-   - Notion'daki hedeflerin listesini ve SMART skorlarını gör
-   - En az bir hedefin uyarı mesajı aldığını doğrula
+2. **SMART Validation Command**
+   - Run `python -m orchestration.main validate-goals`
+   - Confirm you see the list of goals and SMART scores from Notion
+   - Verify at least one goal receives a warning
 
-3. **Quick Journal Komutu**
-   - `python -m orchestration.main quick-journal "Test girişi"` çalıştır
-   - Notion'da yeni günce girişinin oluştuğunu doğrula
+3. **Quick Journal Command**
+   - Run `python -m orchestration.main quick-journal "Test entry"`
+   - Confirm a new journal entry appears in Notion
 
 ---
 
@@ -257,14 +257,10 @@ Test cases:
 ## User Review Required
 
 > [!NOTE]
-> Lütfen aşağıdaki soruları cevaplayın:
+> Please answer the following:
 
-1. **Otomasyon Zamanlaması**: Sabah 08:00 ve Pazar 20:00 uygun mu? Farklı saatler tercih eder misin?
-
-2. **Notification Sistemi**: Otomasyon çalıştığında macOS notification göndermeli mi? (osascript entegrasyonu)
-
-3. **SMART Validator Detayları**: "Achievable" kriteri için hangi metriği kullanmalıyız? (Şu an subjective olduğu için atladım)
-
-4. **Quick Journal Format**: Tek satır mı, yoksa çok satırlı giriş de desteklenmeli mi?
-
-5. **Ek Komutlar**: Başka CLI komutları eklememi ister misin? (örn: `habit-streak`, `pillar-health`)
+1. **Automation schedule**: Is 08:00 in the morning and Sunday 20:00 acceptable? Do you prefer different times?
+2. **Notification system**: Should automation send macOS notifications when it runs? (osascript integration)
+3. **SMART Validator details**: Which metric should we use for the "Achievable" criterion? (Currently skipped because it's subjective)
+4. **Quick Journal format**: Single-line only, or should multi-line entries be supported?
+5. **Additional commands**: Any other CLI commands you want added? (e.g., `habit-streak`, `pillar-health`)
