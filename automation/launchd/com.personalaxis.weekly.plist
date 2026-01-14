@@ -6,15 +6,16 @@
     <string>com.personalaxis.weekly</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/path/to/venv/bin/python</string>
+        <string>/Users/oeksi/VSCode Projects/PersonalAxis/.venv/bin/python</string>
         <string>-m</string>
         <string>orchestration.main</string>
         <string>review-context</string>
         <string>--type</string>
         <string>weekly</string>
+        <string>--notify</string>
     </array>
     <key>WorkingDirectory</key>
-    <string>/path/to/PersonalAxis</string>
+    <string>/Users/oeksi/VSCode Projects/PersonalAxis</string>
     <key>StartCalendarInterval</key>
     <dict>
         <key>Weekday</key>
@@ -25,8 +26,8 @@
         <integer>0</integer>
     </dict>
     <key>StandardOutPath</key>
-    <string>/path/to/PersonalAxis/logs/weekly.log</string>
+    <string>/Users/oeksi/VSCode Projects/PersonalAxis/logs/weekly.log</string>
     <key>StandardErrorPath</key>
-    <string>/path/to/PersonalAxis/logs/weekly.error.log</string>
+    <string>/Users/oeksi/VSCode Projects/PersonalAxis/logs/weekly.error.log</string>
 </dict>
 </plist>

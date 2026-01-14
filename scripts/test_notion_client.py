@@ -5,7 +5,7 @@ from pprint import pprint
 # Add the project root to sys.path to import orchestration
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from orchestration.notion_client import NotionClient
+from orchestration.notion_service import NotionClient
 
 def test_client():
     print("Initializing Notion Client...")

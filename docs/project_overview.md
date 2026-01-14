@@ -96,4 +96,4 @@ Currently in **Phase 5: Automation & Workflows**
 - Phase 5 (Automation) 🔄 In Progress
   - [x] Periodic Context Generation via `launchd`
   - [ ] SMART Goal Validation
-  - [ ] Advanced CLI Commands
+  - [x] Advanced CLI Commands

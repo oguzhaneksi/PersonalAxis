@@ -38,4 +38,11 @@ for plist in ~/Library/LaunchAgents/com.personalaxis.*.plist; do
 done
 
 echo "✓ PersonalAxis automation installed and loaded!"
+echo ""
+echo "Schedules:"
+echo "- Daily Context:  08:00 daily           (com.personalaxis.daily)"
+echo "- Weekly Review: Sunday 20:00          (com.personalaxis.weekly)"
+echo "- Monthly Review: 1st of month 08:00   (com.personalaxis.monthly)"
+echo ""
 echo "You can check status using: launchctl list | grep personalaxis"
+echo "Logs are located in: $PROJECT_DIR/logs/"

@@ -57,13 +57,22 @@ We will add extra CLI commands:
 
 | Command | Description |
 |---------|-------------|
-| `quick-journal` | Quick single-line journal entry |
+| `quick-journal` | Quick multi-line journal entry (supports stdin) |
 | `goal-status` | Summary of active goals' progress |
 | `validate-goals` | SMART validation report |
 
 **Files to modify:**
 - `orchestration/main.py` (add new commands)
 - `orchestration/notion_service.py` (add helper methods if needed)
+
+### Status Update (implementation progress)
+
+- `launchd` automation and `automation/install.sh` are implemented and configured for the schedules described above.
+- macOS notifications via `osascript` have been added and CLI commands accept a `--notify` flag.
+- `quick-journal` now supports multi-line entries via `stdin` and a simple call form.
+- `goal-status` and `quick-journal` commands are implemented in `orchestration/main.py`.
+- Automated tests for the new CLI commands have been added at `tests/test_cli.py`.
+- The SMART Goal Validation feature is deferred for a later phase (see Task 5.2).
 
 ---
 
