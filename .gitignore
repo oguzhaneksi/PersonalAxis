@@ -3,6 +3,7 @@ output/
 
 # Ignore virtual environment
 venv/
+.venv/
 
 # Ignore Notion API token
 .env

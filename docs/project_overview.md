@@ -24,14 +24,16 @@ The system follows **August Bradley's PPV (Pillars, Pipelines, Vaults)** philoso
 
 ### 2. AI Integration
 
-**Daily Operations - Gemini**
+Phase 4 implemented: JARVIS (Gemini) and the Strategic Reviewer (ChatGPT) are integrated and operational via the orchestration CLI.
+
+**Daily Operations - JARVIS (Gemini)**
 - Brain dumps and thought processing
 - Emotional labeling and validation
 - Daily reflections and planning
 - High-token conversations
 - Model: Gemini 3 Pro
 
-**Strategic Reviews - ChatGPT**
+**Strategic Reviews - Strategic Reviewer (ChatGPT)**
 - Weekly, monthly, quarterly, yearly reviews
 - Deep pattern analysis
 - Strategic goal adjustments
@@ -40,7 +42,7 @@ The system follows **August Bradley's PPV (Pillars, Pipelines, Vaults)** philoso
 
 ### 3. Orchestration Layer (Python)
 
-A lightweight CLI service that:
+A lightweight CLI service (Click-based) that:
 - Fetches context from Notion
 - Generates formatted markdown for AI injection
 - Saves AI insights back to Notion
@@ -51,21 +53,21 @@ A lightweight CLI service that:
 
 ### Daily Flow
 1. Run `personalaxis daily-context` → generates context.md
-2. Upload context to Gemini Gem
+2. Upload context to Gemini (JARVIS)
 3. Conduct coaching session with AI
 4. Run `personalaxis save-journal` → saves to Notion
 
 ### Periodic Review Flow
-1. Run `personalaxis weekly-review` → generates review context
-2. Upload to ChatGPT Project
+1. Run `personalaxis review-context --type weekly` → generates review context
+2. Upload to ChatGPT (Strategic Reviewer)
 3. Conduct strategic review
-4. Run `personalaxis save-review weekly` → updates Notion
+4. Run `personalaxis save-review --type weekly` → updates Notion
 
 ## Technology Stack
 
 - **Backend**: Python 3.9+
 - **Notion SDK**: notion-client
-- **CLI Framework**: Built-in argparse
+- **CLI Framework**: Click (click)
 - **AI Platforms**: Gemini (web UI), ChatGPT (web UI)
 - **Environment**: Local execution for privacy
 
