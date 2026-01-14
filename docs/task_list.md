@@ -28,5 +28,5 @@
 
 ## Phase 5: Automation & Workflows
 - [x] Setup periodic review automation (launchd)
-- [ ] Create SMART goal validation templates
+- [ ] Create SMART goal validation templates (parked)
 - [x] Build additional CLI/Scripts for manual triggers

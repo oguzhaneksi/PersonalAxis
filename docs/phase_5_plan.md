@@ -30,7 +30,7 @@ On macOS we will create scripts that run automatically using `launchd`. The time
 - `automation/install.sh` (plist installer script)
 - `automation/README.md` (setup guide)
 
-### Task 5.2: SMART Goal Validation
+### Task 5.2: SMART Goal Validation (PARKED)
 
 A validator that checks goals against SMART criteria:
 
@@ -42,7 +42,7 @@ SMART Criteria:
 - Time-bound: Is there a deadline?
 
 **Files to create/modify:**
-- `orchestration/smart_validator.py` (validation logic)
+- `orchestration/smart_validator.py` (validation logic) — PARKED: deferred to a later phase
 - `orchestration/main.py` (add `validate-goals` command)
 
 **CLI Usage:**
@@ -72,7 +72,7 @@ We will add extra CLI commands:
 - `quick-journal` now supports multi-line entries via `stdin` and a simple call form.
 - `goal-status` and `quick-journal` commands are implemented in `orchestration/main.py`.
 - Automated tests for the new CLI commands have been added at `tests/test_cli.py`.
-- The SMART Goal Validation feature is deferred for a later phase (see Task 5.2).
+- The SMART Goal Validation task is parked for now and deferred to a future phase.
 
 ---
 
@@ -203,7 +203,7 @@ def validate_goal(goal: dict) -> ValidationResult:
 | `automation/launchd/com.personalaxis.monthly.plist` | Monthly review automation |
 | `automation/install.sh` | Automation installer script |
 | `automation/README.md` | Setup and usage guide |
-| `orchestration/smart_validator.py` | SMART validation module |
+| `orchestration/smart_validator.py` | SMART validation module (parked — deferred) |
 | `logs/` directory | Automation logs |
 
 ### Modified Files
