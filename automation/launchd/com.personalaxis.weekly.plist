@@ -19,11 +19,11 @@
     <key>StartCalendarInterval</key>
     <dict>
         <key>Weekday</key>
-        <integer>7</integer> <!-- Sunday -->
+        <integer>__WEEKLY_DAY__</integer> <!-- Sunday -->
         <key>Hour</key>
-        <integer>20</integer>
+        <integer>__WEEKLY_HOUR__</integer>
         <key>Minute</key>
-        <integer>0</integer>
+        <integer>__WEEKLY_MINUTE__</integer>
     </dict>
     <key>StandardOutPath</key>
     <string>/Users/oeksi/VSCode Projects/PersonalAxis/logs/weekly.log</string>

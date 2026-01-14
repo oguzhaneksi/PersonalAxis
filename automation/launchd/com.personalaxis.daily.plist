@@ -17,9 +17,9 @@
     <key>StartCalendarInterval</key>
     <dict>
         <key>Hour</key>
-        <integer>8</integer>
+        <integer>__DAILY_HOUR__</integer>
         <key>Minute</key>
-        <integer>0</integer>
+        <integer>__DAILY_MINUTE__</integer>
     </dict>
     <key>StandardOutPath</key>
     <string>/Users/oeksi/VSCode Projects/PersonalAxis/logs/daily.log</string>

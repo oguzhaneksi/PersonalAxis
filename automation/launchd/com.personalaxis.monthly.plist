@@ -21,11 +21,11 @@
     <key>StartCalendarInterval</key>
     <dict>
         <key>Day</key>
-        <integer>1</integer>
+        <integer>__MONTHLY_DAY__</integer>
         <key>Hour</key>
-        <integer>8</integer>
+        <integer>__MONTHLY_HOUR__</integer>
         <key>Minute</key>
-        <integer>0</integer>
+        <integer>__MONTHLY_MINUTE__</integer>
     </dict>
     <key>StandardOutPath</key>
     <string>/Users/oeksi/VSCode Projects/PersonalAxis/logs/monthly.log</string>
