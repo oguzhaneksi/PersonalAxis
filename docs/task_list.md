@@ -30,3 +30,10 @@
 - [x] Setup periodic review automation (launchd)
 - [ ] Create SMART goal validation templates (parked)
 - [x] Build additional CLI/Scripts for manual triggers
+
+## Phase 6: Mobile Access (iOS First)
+- [ ] Phase 6.1: FastAPI Core API (Endpoints & Auth)
+- [ ] Phase 6.2: Cloudflare Tunnel Deployment
+- [ ] Phase 6.3: PWA Frontend (Minimal UI)
+- [ ] Phase 6.4: Service Worker & Polish
+- [ ] Phase 6.5: Production Setup (launchd & Docs)
