@@ -1,10 +1,12 @@
 from fastapi import APIRouter
 from orchestration.notion_service import NotionClient
 from datetime import datetime
+from api.error_handlers import handle_notion_errors
 
 router = APIRouter(prefix="/api/habits", tags=["Habits"])
 
 @router.get("/")
+@handle_notion_errors
 async def get_todays_habits():
     """Get today's habit tracking status."""
     client = NotionClient()

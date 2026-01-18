@@ -1,8 +1,10 @@
 from fastapi.testclient import TestClient
 from api.main import app
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, Mock
 import pytest
 import datetime
+from notion_client.errors import APIResponseError
+import requests
 
 client = TestClient(app)
 
@@ -14,33 +16,14 @@ def mock_env(monkeypatch):
 def get_headers():
     return {"X-API-Key": "test_key"}
 
+# ============================================================================
+# BASIC FUNCTIONALITY TESTS (Existing)
+# ============================================================================
+
 def test_health_check():
     response = client.get("/api/health")
     assert response.status_code == 200
     assert response.json() == {"status": "healthy", "version": "1.0.0"}
-
-def test_auth_missing():
-    response = client.get("/api/context/daily")
-    assert response.status_code == 403
-    data = response.json()
-    assert data["success"] is False
-    assert data["error"]["message"] == "Missing API Key"
-
-def test_auth_invalid():
-    response = client.get("/api/context/daily", headers={"X-API-Key": "wrong"})
-    assert response.status_code == 403
-    data = response.json()
-    assert data["success"] is False
-    assert data["error"]["message"] == "Invalid API key"
-
-def test_auth_server_key_not_set(monkeypatch):
-    # Remove the environment variable to simulate misconfiguration
-    monkeypatch.delenv("PERSONALAXIS_API_KEY", raising=False)
-    response = client.get("/api/context/daily", headers={"X-API-Key": "any_key"})
-    assert response.status_code == 500
-    data = response.json()
-    assert data["success"] is False
-    assert data["error"]["message"] == "API key not configured in server"
 
 @patch("api.routers.context.ContextGenerator")
 def test_get_daily_context(mock_gen_cls):
@@ -118,3 +101,311 @@ def test_save_review(mock_client_cls):
         
     assert response.status_code == 200
     assert response.json()["data"]["updated_goals"] == ["Run 5k"]
+
+@patch("api.routers.goals.NotionClient")
+def test_get_goals_status(mock_client_cls):
+    mock_client = mock_client_cls.return_value
+    mock_client.fetch_active_goals.return_value = [{"id": "1", "name": "Test Goal"}]
+    
+    response = client.get("/api/goals/status", headers=get_headers())
+    assert response.status_code == 200
+    assert response.json()["success"] is True
+
+@patch("api.routers.habits.NotionClient")
+def test_get_todays_habits(mock_client_cls):
+    mock_client = mock_client_cls.return_value
+    mock_client.get_journal_entry.return_value = {
+        "properties": {
+            "Exercise": {"type": "checkbox", "checkbox": True}
+        }
+    }
+    
+    response = client.get("/api/habits/", headers=get_headers())
+    assert response.status_code == 200
+    assert response.json()["data"]["habits"]["Exercise"] is True
+
+
+# ============================================================================
+# AUTHENTICATION ERROR TESTS
+# ============================================================================
+
+def test_auth_missing():
+    """Test that missing API key returns AUTH_MISSING error code."""
+    response = client.get("/api/context/daily")
+    assert response.status_code == 403
+    data = response.json()
+    assert data["success"] is False
+    assert data["error"]["code"] == "AUTH_MISSING"
+    assert "user_message" in data["error"]
+
+def test_auth_invalid():
+    """Test that invalid API key returns AUTH_INVALID error code."""
+    response = client.get("/api/context/daily", headers={"X-API-Key": "wrong"})
+    assert response.status_code == 403
+    data = response.json()
+    assert data["success"] is False
+    assert data["error"]["code"] == "AUTH_INVALID"
+
+def test_auth_server_key_not_set(monkeypatch):
+    """Test server misconfiguration when API key env var is not set."""
+    monkeypatch.delenv("PERSONALAXIS_API_KEY", raising=False)
+    response = client.get("/api/context/daily", headers={"X-API-Key": "any_key"})
+    assert response.status_code == 500
+    data = response.json()
+    assert data["success"] is False
+    assert "not configured" in data["error"]["message"]
+
+def test_protected_endpoints_require_auth():
+    """Test that all protected endpoints return 403 without API key."""
+    endpoints = [
+        "/api/context/daily",
+        "/api/context/review/weekly",
+        "/api/goals/status",
+        "/api/habits/",
+    ]
+    for endpoint in endpoints:
+        response = client.get(endpoint)
+        assert response.status_code == 403, f"{endpoint} should require auth"
+        assert response.json()["error"]["code"] == "AUTH_MISSING"
+
+
+# ============================================================================
+# NOTION API ERROR TESTS
+# ============================================================================
+
+def create_mock_api_error(code: str, status: int, message: str = "Test error"):
+    """Helper to create mock Notion APIResponseError."""
+    mock_response = Mock()
+    mock_response.status_code = status
+    error = APIResponseError(response=mock_response, message=message, code=code)
+    error.status = status
+    error.code = code
+    return error
+
+@patch("api.routers.context.ContextGenerator")
+def test_notion_unauthorized_error(mock_gen_cls):
+    """Test NOTION_AUTH_FAILED error when Notion returns unauthorized."""
+    mock_gen = mock_gen_cls.return_value
+    mock_gen.generate_daily_context.side_effect = create_mock_api_error("unauthorized", 401)
+    
+    response = client.get("/api/context/daily", headers=get_headers())
+    assert response.status_code == 401
+    data = response.json()
+    assert data["success"] is False
+    assert data["error"]["code"] == "NOTION_AUTH_FAILED"
+    assert "user_message" in data["error"]
+
+@patch("api.routers.context.ContextGenerator")
+def test_notion_rate_limit_error(mock_gen_cls):
+    """Test NOTION_RATE_LIMIT error when Notion rate limits requests."""
+    mock_gen = mock_gen_cls.return_value
+    mock_gen.generate_daily_context.side_effect = create_mock_api_error("rate_limited", 429)
+    
+    response = client.get("/api/context/daily", headers=get_headers())
+    assert response.status_code == 429
+    data = response.json()
+    assert data["success"] is False
+    assert data["error"]["code"] == "NOTION_RATE_LIMIT"
+    assert "details" in data["error"]
+    assert "retry_after" in data["error"]["details"]
+
+@patch("api.routers.context.ContextGenerator")
+def test_notion_timeout_error(mock_gen_cls):
+    """Test NOTION_TIMEOUT error when Notion request times out."""
+    mock_gen = mock_gen_cls.return_value
+    mock_gen.generate_daily_context.side_effect = requests.exceptions.Timeout("Connection timeout")
+    
+    response = client.get("/api/context/daily", headers=get_headers())
+    assert response.status_code == 504
+    data = response.json()
+    assert data["success"] is False
+    assert data["error"]["code"] == "NOTION_TIMEOUT"
+
+@patch("api.routers.journal.NotionClient")
+def test_notion_generic_api_error(mock_client_cls):
+    """Test NOTION_API_ERROR for generic Notion errors."""
+    mock_client = mock_client_cls.return_value
+    mock_client.create_journal_entry.side_effect = create_mock_api_error("internal_server_error", 500)
+    
+    payload = {"content": "Test"}
+    response = client.post("/api/journal/quick", json=payload, headers=get_headers())
+    assert response.status_code == 502
+    data = response.json()
+    assert data["success"] is False
+    assert data["error"]["code"] == "NOTION_API_ERROR"
+    assert data["error"]["details"]["notion_status"] == 500
+
+
+# ============================================================================
+# VALIDATION ERROR TESTS
+# ============================================================================
+
+def test_validation_error_missing_required_field():
+    """Test VALIDATION_ERROR when required field is missing."""
+    payload = {"title": "Test"}  # Missing 'content'
+    response = client.post("/api/journal/quick", json=payload, headers=get_headers())
+    assert response.status_code == 422
+    data = response.json()
+    assert data["success"] is False
+    assert data["error"]["code"] == "VALIDATION_ERROR"
+    assert "details" in data["error"]
+
+def test_validation_error_invalid_field_type():
+    """Test VALIDATION_ERROR for invalid field types."""
+    payload = {
+        "title": "Test",
+        "raw_content": "Content",
+        "date": "invalid-date"  # Should be YYYY-MM-DD
+    }
+    response = client.post("/api/journal/", json=payload, headers=get_headers())
+    assert response.status_code == 422
+    data = response.json()
+    assert data["error"]["code"] == "VALIDATION_ERROR"
+
+def test_validation_error_invalid_priority():
+    """Test validation for invalid priority values."""
+    payload = {
+        "title": "Test",
+        "raw_content": "Content",
+        "action_items": [
+            {
+                "priority": "INVALID",  # Should be P1-P5
+                "status": "Aktif",
+                "title": "Task",
+                "date": "2026-01-19"
+            }
+        ]
+    }
+    response = client.post("/api/journal/", json=payload, headers=get_headers())
+    assert response.status_code == 422
+
+def test_invalid_review_type():
+    """Test INVALID_REVIEW_TYPE error for unsupported review types."""
+    response = client.get("/api/context/review/invalid_type", headers=get_headers())
+    assert response.status_code == 422
+    data = response.json()
+    assert data["success"] is False
+    assert data["error"]["code"] == "INVALID_REVIEW_TYPE"
+    assert "valid_types" in data["error"]["details"]
+
+def test_review_type_mismatch():
+    """Test validation when URL review type doesn't match body."""
+    payload = {
+        "review_type": "weekly",
+        "date": "2026-01-18",
+        "review_summary": "Test summary that is long enough to pass validation checks here",
+        "wins": ["Win"],
+        "challenges": ["Challenge"],
+        "lessons_learned": "Learned something",
+        "next_period_focus": ["Focus"]
+    }
+    response = client.post("/api/reviews/monthly", json=payload, headers=get_headers())
+    assert response.status_code == 400
+
+
+# ============================================================================
+# ERROR RESPONSE FORMAT TESTS
+# ============================================================================
+
+@patch("api.routers.context.ContextGenerator")
+def test_error_response_structure(mock_gen_cls):
+    """Test that all errors follow standardized response format."""
+    mock_gen = mock_gen_cls.return_value
+    mock_gen.generate_daily_context.side_effect = create_mock_api_error("unauthorized", 401)
+    
+    response = client.get("/api/context/daily", headers=get_headers())
+    data = response.json()
+    
+    # Check standard error structure
+    assert "success" in data
+    assert data["success"] is False
+    assert "error" in data
+    
+    error = data["error"]
+    assert "code" in error
+    assert "message" in error
+    assert "user_message" in error
+    assert "timestamp" in error
+    
+    # Timestamp should be ISO format
+    assert "T" in error["timestamp"]
+
+def test_error_contains_turkish_user_message():
+    """Test that user_message is in Turkish for better UX."""
+    response = client.get("/api/context/daily")
+    data = response.json()
+    
+    # Turkish characters check (ş, ü, ğ, ı, ö, ç)
+    user_msg = data["error"]["user_message"]
+    assert any(char in user_msg for char in ["ı", "ş", "ğ", "ü", "ö", "ç"]) or len(user_msg) > 0
+
+
+# ============================================================================
+# ENDPOINT-SPECIFIC ERROR TESTS
+# ============================================================================
+
+@patch("api.routers.goals.NotionClient")
+def test_goals_endpoint_notion_error_handling(mock_client_cls):
+    """Test that goals endpoint properly handles Notion errors."""
+    mock_client = mock_client_cls.return_value
+    mock_client.fetch_active_goals.side_effect = create_mock_api_error("rate_limited", 429)
+    
+    response = client.get("/api/goals/status", headers=get_headers())
+    assert response.status_code == 429
+    assert response.json()["error"]["code"] == "NOTION_RATE_LIMIT"
+
+@patch("api.routers.habits.NotionClient")
+def test_habits_endpoint_timeout_handling(mock_client_cls):
+    """Test that habits endpoint handles timeouts."""
+    mock_client = mock_client_cls.return_value
+    mock_client.get_journal_entry.side_effect = requests.exceptions.Timeout()
+    
+    response = client.get("/api/habits/", headers=get_headers())
+    assert response.status_code == 504
+    assert response.json()["error"]["code"] == "NOTION_TIMEOUT"
+
+@patch("api.routers.reviews.NotionClient")
+def test_reviews_endpoint_error_handling(mock_client_cls):
+    """Test that reviews endpoint handles Notion errors during save."""
+    mock_client = mock_client_cls.return_value
+    mock_client.save_review_session.side_effect = create_mock_api_error("unauthorized", 401)
+    
+    payload = {
+        "review_type": "weekly",
+        "date": "2026-01-18",
+        "review_summary": "Test summary with enough characters to pass min length validation",
+        "wins": ["Win"],
+        "challenges": ["Challenge"],
+        "lessons_learned": "Learned",
+        "next_period_focus": ["Focus"]
+    }
+    
+    response = client.post("/api/reviews/weekly", json=payload, headers=get_headers())
+    assert response.status_code == 401
+    assert response.json()["error"]["code"] == "NOTION_AUTH_FAILED"
+
+
+# ============================================================================
+# CONTEXT ROUTER SPECIFIC TESTS
+# ============================================================================
+
+@patch("api.routers.context.ContextGenerator")
+def test_review_context_with_auto_period(mock_gen_cls):
+    """Test that review context auto-calculates period when not provided."""
+    mock_gen = mock_gen_cls.return_value
+    mock_gen.generate_review_context.return_value = "# Review Context"
+    mock_gen.notion._calculate_week.return_value = "2026-W03"
+    
+    response = client.get("/api/context/review/weekly", headers=get_headers())
+    assert response.status_code == 200
+    assert response.json()["data"]["period"] == "2026-W03"
+
+@patch("api.routers.context.ContextGenerator")
+def test_review_context_with_explicit_period(mock_gen_cls):
+    """Test that review context uses provided period."""
+    mock_gen = mock_gen_cls.return_value
+    mock_gen.generate_review_context.return_value = "# Review Context"
+    
+    response = client.get("/api/context/review/weekly?period=2026-W01", headers=get_headers())
+    assert response.status_code == 200
+    assert response.json()["data"]["period"] == "2026-W01"

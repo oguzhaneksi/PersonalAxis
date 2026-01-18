@@ -4,6 +4,7 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from api.routers import context, journal, goals, habits, reviews
 from api.auth import verify_api_key
+from api.exceptions import PersonalAxisException
 import datetime
 
 app = FastAPI(
@@ -21,6 +22,25 @@ app.add_middleware(
 )
 
 # Exception Handlers
+# Order matters: Most specific first, then generic
+
+@app.exception_handler(PersonalAxisException)
+async def personalaxis_exception_handler(request: Request, exc: PersonalAxisException):
+    """Handle all custom PersonalAxis exceptions with structured error responses."""
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "success": False,
+            "error": {
+                "code": exc.code,
+                "message": exc.message,
+                "user_message": exc.user_message,
+                "details": exc.details,
+                "timestamp": datetime.datetime.now().isoformat()
+            }
+        }
+    )
+
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
     return JSONResponse(

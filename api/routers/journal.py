@@ -2,10 +2,12 @@ from fastapi import APIRouter
 from orchestration.notion_service import NotionClient
 from api.schemas import QuickJournalRequest, FullJournalRequest
 from datetime import datetime
+from api.error_handlers import handle_notion_errors
 
 router = APIRouter(prefix="/api/journal", tags=["Journal"])
 
 @router.post("/quick")
+@handle_notion_errors
 async def quick_journal(request: QuickJournalRequest):
     """Create a quick journal entry."""
     client = NotionClient()
@@ -27,6 +29,7 @@ async def quick_journal(request: QuickJournalRequest):
     }
 
 @router.post("/")
+@handle_notion_errors
 async def save_journal(request: FullJournalRequest):
     """Save a full journal entry with AI output."""
     client = NotionClient()

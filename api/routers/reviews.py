@@ -1,10 +1,12 @@
 from fastapi import APIRouter, HTTPException
 from api.schemas import SaveReviewRequest
 from orchestration.notion_service import NotionClient
+from api.error_handlers import handle_notion_errors
 
 router = APIRouter(prefix="/api/reviews", tags=["Reviews"])
 
 @router.post("/{review_type}")
+@handle_notion_errors
 async def save_review(review_type: str, request: SaveReviewRequest):
     """Save a periodic review session result to Notion."""
     
