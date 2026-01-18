@@ -332,7 +332,54 @@ async def save_journal(request: FullJournalRequest):
     return {"success": bool(page_id), "page_id": page_id}
 ```
 
-#### 6.1.5 Authentication Middleware
+#### 6.1.5 Goals Router
+
+```python
+# api/routers/goals.py
+from fastapi import APIRouter
+from orchestration.notion_service import NotionClient
+
+router = APIRouter(prefix="/api/goals", tags=["Goals"])
+
+@router.get("/status")
+async def get_goals_status():
+    """Get status of active goals (Quarterly & Weekly)."""
+    client = NotionClient()
+    # Fetch active goals for current period
+    goals = client.get_active_goals_summary()
+    return {
+        "success": True, 
+        "goals": goals
+    }
+```
+
+#### 6.1.6 Habits Router
+
+```python
+# api/routers/habits.py
+from fastapi import APIRouter
+from orchestration.notion_service import NotionClient
+from datetime import datetime
+
+router = APIRouter(prefix="/api/habits", tags=["Habits"])
+
+@router.get("/")
+async def get_todays_habits():
+    """Get today's habit tracking status."""
+    client = NotionClient()
+    today = datetime.now().strftime("%Y-%m-%d")
+    
+    # Get or create today's journal entry to read habits
+    entry = client.get_journal_entry(today)
+    
+    return {
+        "success": True,
+        "date": today,
+        "habits": entry.get("habits", {}) if entry else {}
+    }
+```
+
+#### 6.1.7 Authentication Middleware
 
 ```python
 # api/auth.py
@@ -351,6 +398,52 @@ async def verify_api_key(api_key: str = Security(api_key_header)):
         raise HTTPException(status_code=403, detail="Invalid API key")
     return api_key
 ```
+
+#### 6.1.8 Error Handling & Validation
+
+Standardized error response format for all endpoints:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Technical description for logs",
+    "user_message": "Kaygı verici olmayan, kullanıcı dostu mesaj",
+    "details": {},
+    "timestamp": "2026-01-18T10:50:00Z"
+  }
+}
+```
+
+**Key Error Scenarios to Handle:**
+1.  **Notion API Issues:**
+    - `429 Too Many Requests`: Retry with exponential backoff (server-side) or return `429` to client with `retry_after`.
+    - `401 Unauthorized`: Log critical alert, return `500` or `401` to client.
+    - `404 Not Found`: Return `404` with specific database name.
+2.  **Validation Issues:**
+    - `422 Unprocessable Entity`: Automatic via Pydantic for malformed JSON or invalid types.
+    - Custom validation for review types and date formats.
+3.  **System Issues:**
+    - `503 Service Unavailable`: Used during server startup or if Notion is down.
+    - `504 Gateway Timeout`: If Notion takes >30s to respond.
+
+**Possible Error Codes:**
+
+| Error Code | HTTP Status | Description |
+| :--- | :--- | :--- |
+| `AUTH_MISSING` | 403 | API key header is missing in the request. |
+| `AUTH_INVALID` | 403 | Provided API key is incorrect. |
+| `NOTION_AUTH_FAILED` | 401/500 | Notion token is invalid or integration has no access. |
+| `NOTION_RATE_LIMIT` | 429 | Notion API rate limit exceeded. |
+| `NOTION_API_ERROR` | 500/502 | Generic error returned by the Notion API. |
+| `NOTION_RESOURCE_NOT_FOUND` | 404 | Targeted Database or Page not found in Notion. |
+| `NOTION_TIMEOUT` | 504 | Connection to Notion API timed out. |
+| `VALIDATION_ERROR` | 422 | Request body or parameters failed validation (Pydantic). |
+| `INVALID_REVIEW_TYPE` | 422 | Unsupported review type (must be weekly, monthly, etc). |
+| `INVALID_PERIOD_FORMAT` | 422 | Date or period string (e.g. 2026-W01) is malformed. |
+| `INTERNAL_ERROR` | 500 | Unexpected server-side exception. |
+| `OFFLINE` | (Client) | Handled by PWA when no internet is detected. |
 
 ---
 
@@ -567,37 +660,33 @@ ingress:
 
 #### 6.4.4 Error & Loading States
 
+The PWA must handle errors gracefully with clear user communication:
+
+**Loading State:**
+- Pulsing skeleton screens or a centered "JARVIS is thinking..." spinner.
+- Disable action buttons during active requests.
+
+**Standard Error Toast/Modal:**
 ```
-Loading:
 ┌─────────────────────────────────────┐
+│  ⚠️ Bir Şeyler Ters Gitti           │
+├─────────────────────────────────────┤
+│  [İkon: Network/Lock/Cloud]         │
 │                                     │
-│           ⏳ Loading...             │
+│  "Notion bağlantısı şu an kurulamıyor.│
+│   Sistem 5 saniye içinde tekrar     │
+│   deneyecek."                       │
 │                                     │
-└─────────────────────────────────────┘
-
-Offline:
-┌─────────────────────────────────────┐
-│                                     │
-│  📡 No connection                   │
-│                                     │
-│  Please check your internet         │
-│  and try again.                     │
-│                                     │
-│  [ 🔄 Retry ]                       │
-│                                     │
-└─────────────────────────────────────┘
-
-API Error:
-┌─────────────────────────────────────┐
-│                                     │
-│  ⚠️ Something went wrong            │
-│                                     │
-│  Error: [message from API]          │
-│                                     │
-│  [ 🔄 Try Again ]  [ 🏠 Home ]      │
-│                                     │
+│  [ Kapat ]       [ Şimdi Dene ]     │
 └─────────────────────────────────────┘
 ```
+
+**Specific Error Handlers:**
+- **Offline:** Persistent top bar "İnternet Bağlantısı Yok".
+- **403 Forbidden:** Force logout/clear API key and show "Yetkisiz Erişim" screen.
+- **429 Rate Limit:** Show countdown timer: "Çok fazla istek. [15] saniye bekleyin."
+- **500/503:** "Sunucu şu an meşgul veya bakımda. Lütfen daha sonra deneyin."
+
 
 #### 6.4.5 PWA Technical Requirements
 
@@ -658,6 +747,29 @@ def test_quick_journal_creates_entry(mock_notion):
     )
     assert response.status_code == 200
     assert response.json()["success"] == True
+
+def test_daily_context_notion_error():
+    """Should return 500/502 if Notion API fails."""
+    with mock.patch("orchestration.notion_service.NotionClient") as mock_client:
+        mock_client.return_value.get_active_pillars.side_effect = APIResponseError(
+            response=mock.Mock(status_code=500), body={}, message="Notion Down"
+        )
+        response = client.get("/api/context/daily", headers={"X-API-Key": "test-key"})
+        assert response.status_code == 500
+        assert response.json()["error"]["code"] == "NOTION_API_ERROR"
+
+def test_invalid_review_type():
+    """Should return 400/422 for unsupported review types."""
+    response = client.get("/api/context/review/invalid_type", headers={"X-API-Key": "test-key"})
+    assert response.status_code == 422 
+
+def test_rate_limit_handling():
+    """Should return 429 when rate limit is exceeded."""
+    # (Testing slowapi limiter)
+    for _ in range(11):
+        response = client.get("/api/context/daily", headers={"X-API-Key": "test-key"})
+    assert response.status_code == 429
+    assert "retry-after" in response.headers
 ```
 
 ### Integration Tests (Manual with Real Notion)
