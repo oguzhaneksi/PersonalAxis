@@ -379,7 +379,43 @@ async def get_todays_habits():
     }
 ```
 
-#### 6.1.7 Authentication Middleware
+#### 6.1.7 Reviews Router
+
+```python
+# api/routers/reviews.py
+from fastapi import APIRouter
+from pydantic import BaseModel
+from orchestration.notion_service import NotionClient
+
+router = APIRouter(prefix="/api/reviews", tags=["Reviews"])
+
+class SaveReviewRequest(BaseModel):
+    review_type: str  # weekly, monthly, quarterly, yearly
+    date: str
+    content: str
+    rating: int | None = None
+    emotions: list[str] | None = None
+
+@router.post("/{review_type}")
+async def save_review(review_type: str, request: SaveReviewRequest):
+    """Save a periodic review session result to Notion."""
+    client = NotionClient()
+    
+    page_id = client.save_review_session(
+        review_type=review_type,
+        date_str=request.date,
+        content=request.content,
+        rating=request.rating,
+        emotions=request.emotions
+    )
+    
+    return {
+        "success": bool(page_id),
+        "page_id": page_id
+    }
+```
+
+#### 6.1.8 Authentication Middleware
 
 ```python
 # api/auth.py
@@ -399,7 +435,7 @@ async def verify_api_key(api_key: str = Security(api_key_header)):
     return api_key
 ```
 
-#### 6.1.8 Error Handling & Validation
+#### 6.1.9 Error Handling & Validation
 
 Standardized error response format for all endpoints:
 
@@ -910,8 +946,9 @@ cloudflared tunnel --url http://localhost:8000
 - [ ] Journal endpoints (`/api/journal/quick`, `/api/journal`)
 - [ ] Goals endpoint (`/api/goals/status`)
 - [ ] Habits endpoint (`/api/habits`)
-- [ ] Reviews endpoint (`/api/reviews/{type}`)
+- [ ] Review endpoints (`/api/reviews/{type}`)
 - [ ] CORS configuration
+- [ ] Error handling & standardized responses
 - [ ] Unit tests (`tests/test_api.py`)
 
 ### Phase 6.2: Cloudflare Tunnel (Week 1)
