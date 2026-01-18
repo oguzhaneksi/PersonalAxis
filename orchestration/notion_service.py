@@ -482,3 +482,69 @@ class NotionClient:
         if results:
             return results[0]["id"]
         return None
+
+    def get_journal_entry(self, date_str: str) -> Optional[Dict]:
+        """
+        Get the journal entry page for a specific date.
+        """
+        query_filter = {
+            "property": "Tarih",
+            "date": {
+                "equals": date_str
+            }
+        }
+        results = self._safe_query(self.db_ids["journal"], query_filter)
+        if results:
+            return results[0]
+        return None
+
+    def save_review_session(self, review_type: str, date_str: str, content: str, rating: Optional[int] = None, emotions: Optional[List[str]] = None) -> str:
+        """
+        Save a manual review session (from Mobile App/API).
+        
+        Args:
+            review_type: weekly, monthly, quarterly, yearly
+            date_str: YYYY-MM-DD
+            content: Main review text
+            rating: 1-10 rating
+            emotions: List of emotions
+            
+        Returns:
+            Page ID if successful
+        """
+        # Calculate period based on type and date
+        period = ""
+        try:
+            if review_type == "weekly":
+                period = self._calculate_week(date_str)
+            elif review_type == "monthly":
+                period = self._calculate_month(date_str)
+            elif review_type == "quarterly":
+                period = self._calculate_quarter(date_str)
+            elif review_type == "yearly":
+                period = self._calculate_year(date_str)
+        except Exception as e:
+            print(f"Error calculating period: {e}")
+            period = date_str
+
+        # Determine assessment based on rating
+        assessment = "Normal"
+        if rating:
+            if rating >= 8: assessment = "Harika"
+            elif rating <= 4: assessment = "Zorlu"
+            
+        # Append extra info to summary content
+        summary = content
+        if rating:
+            summary += f"\n\n**Rating:** {rating}/10"
+        if emotions:
+            summary += f"\n**Emotions:** {', '.join(emotions)}"
+            
+        return self.create_review_session(
+            review_type=review_type,
+            period=period,
+            summary=summary,
+            assessment=assessment,
+            wins=[],
+            challenges=[]
+        )

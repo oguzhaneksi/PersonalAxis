@@ -16,9 +16,12 @@ class ContextGenerator:
         self.output_dir = "output"
         os.makedirs(self.output_dir, exist_ok=True)
 
-    def generate_daily_context(self) -> str:
+    def generate_daily_context(self, return_content: bool = False) -> str:
         """
         Fetches daily data, builds context, and writes to output/context.md.
+        
+        Args:
+            return_content: If True, returns the generated markdown string instead of file path.
         """
         print("Fetching daily context data from Notion...")
         pillars = self.notion.fetch_all_pillars()
@@ -35,6 +38,9 @@ class ContextGenerator:
             tasks=tasks
         )
 
+        if return_content:
+            return context
+
         file_path = os.path.join(self.output_dir, "context.md")
         with open(file_path, "w", encoding="utf-8") as f:
             f.write(context)
@@ -42,9 +48,14 @@ class ContextGenerator:
         print(f"✓ Daily context generated: {file_path}")
         return file_path
 
-    def generate_review_context(self, review_type: str, period: str) -> str:
+    def generate_review_context(self, review_type: str, period: str, return_content: bool = False) -> str:
         """
         Fetches review data and writes to output/review_context.md.
+        
+        Args:
+            review_type: Type of review (weekly, monthly, quarterly, yearly)
+            period: Period identifier (e.g. 2026-W01)
+            return_content: If True, returns generated markdown string.
         """
         print(f"Fetching {review_type} review data for {period} from Notion...")
         
@@ -69,6 +80,9 @@ class ContextGenerator:
             goals=goals,
             journals=self._enrich_journals_with_content(journals)
         )
+
+        if return_content:
+            return context
 
         file_path = os.path.join(self.output_dir, f"{review_type}_{period}_context.md")
         with open(file_path, "w", encoding="utf-8") as f:

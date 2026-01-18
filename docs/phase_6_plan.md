@@ -475,9 +475,10 @@ Strict validation is crucial. We will centralize schemas in `api/schemas.py`.
 
 ```python
 # api/schemas.py
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List, Literal
-from datetime import date
+from datetime import date as dt_date
+from enum import Enum
 
 # --- Common Models ---
 
@@ -488,40 +489,63 @@ class StandardResponse(BaseModel):
 
 # --- Journal Models ---
 
+class ActionItem(BaseModel):
+    priority: Literal["P1", "P2", "P3", "P4", "P5"]
+    status: Literal["Aktif"] = "Aktif"
+    title: str = Field(..., description="Task name in Turkish")
+    date: dt_date
+
 class QuickJournalRequest(BaseModel):
     content: str = Field(..., min_length=1, max_length=5000, description="Raw journal entry content")
     title: Optional[str] = Field(None, max_length=200, description="Optional title, defaults to timestamp")
 
 class FullJournalRequest(BaseModel):
     title: str = Field(..., min_length=1, max_length=200)
-    content: str = Field(..., min_length=1)
-    date: Optional[str] = Field(None, description="ISO format YYYY-MM-DD")
-    emotions: Optional[List[str]] = Field(None, max_items=10)
-    insights: Optional[str] = None
-    
-    @validator('date')
-    def validate_date(cls, v):
-        if v:
-            # Simple ISO format check
-            import re
-            if not re.match(r'^\d{4}-\d{2}-\d{2}$', v):
-                raise ValueError('Date must be in YYYY-MM-DD format')
-        return v
+    raw_content: str = Field(..., min_length=1)
+    date: Optional[dt_date] = Field(None, description="Date in ISO format (YYYY-MM-DD)")
+    emotions_detected: Optional[List[str]] = Field(None, max_length=10)
+    key_insights: Optional[str] = None
+    action_items: Optional[List[ActionItem]] = Field(None, description="Actionable tasks derived from journal")
 
 # --- Review Models ---
 
 ReviewType = Literal['weekly', 'monthly', 'quarterly', 'yearly']
 
+class PeriodAssessment(str, Enum):
+    SUCCESSFUL = "Başarılı"
+    MIXED = "Karışık"
+    CHALLENGING = "Zorlayıcı"
+
+class GoalStatus(str, Enum):
+    NOT_STARTED = "Başlamadı"
+    IN_PROGRESS = "Devam Ediyor"
+    COMPLETED = "Tamamlandı"
+    POSTPONED = "Ertelendi"
+
+class GoalUpdate(BaseModel):
+    goal_name: str = Field(..., min_length=1, description="Exact name of the goal from context")
+    new_status: GoalStatus
+    progress_delta: int = Field(
+        ...,
+        ge=-100,
+        le=100,
+        description="Change in progress for this period. Can be negative if regressed."
+    )
+    notes: str = Field(..., min_length=1, description="Brief reasoning for change")
+
 class SaveReviewRequest(BaseModel):
     review_type: ReviewType
-    date: str = Field(..., description="Review date YYYY-MM-DD")
-    content: str = Field(..., min_length=50)
-    rating: Optional[int] = Field(None, ge=1, le=10)
-    emotions: Optional[List[str]] = None
-    next_period_goals: Optional[List[str]] = Field(None, description="Goals identified for next period")
+    date: dt_date = Field(..., description="Review date YYYY-MM-DD")
+    review_summary: str = Field(..., min_length=50)
+    wins: List[str] = Field(..., min_length=1, max_length=50)
+    challenges: List[str] = Field(..., min_length=1, max_length=50)
+    lessons_learned: str = Field(..., min_length=1, description="Key takeaway from this period for future use.")
+    goal_updates: List[GoalUpdate] = Field(default_factory=list)
+    next_period_focus: List[str] = Field(..., min_length=1, max_length=20)
     
-    @validator('review_type')
-    def validate_type(cls, v):
+    @field_validator('review_type')
+    @classmethod
+    def validate_type(cls, v: str) -> str:
         if v not in ['weekly', 'monthly', 'quarterly', 'yearly']:
             raise ValueError(f"Invalid review type: {v}")
         return v
