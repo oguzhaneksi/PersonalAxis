@@ -281,17 +281,16 @@ async def get_review_context(
 
 #### 6.1.4 Journal Router
 
+Uses `QuickJournalRequest` and `FullJournalRequest` from `api/schemas.py`.
+
 ```python
 # api/routers/journal.py
 from fastapi import APIRouter
-from pydantic import BaseModel
 from orchestration.notion_service import NotionClient
+from api.schemas import QuickJournalRequest, FullJournalRequest
+from datetime import datetime
 
 router = APIRouter(prefix="/api/journal", tags=["Journal"])
-
-class QuickJournalRequest(BaseModel):
-    content: str
-    title: str | None = None
 
 @router.post("/quick")
 async def quick_journal(request: QuickJournalRequest):
@@ -309,37 +308,36 @@ async def quick_journal(request: QuickJournalRequest):
     
     return {
         "success": bool(page_id),
-        "data": {
-            "page_id": page_id
-        }
+        "data": {"page_id": page_id}
     }
-
-class FullJournalRequest(BaseModel):
-    title: str
-    content: str
-    date: str | None = None
-    emotions: list[str] | None = None
-    insights: str | None = None
 
 @router.post("/")
 async def save_journal(request: FullJournalRequest):
     """Save a full journal entry with AI output."""
     client = NotionClient()
-    date_str = request.date or datetime.now().strftime("%Y-%m-%d")
+    date_str = request.date.strftime("%Y-%m-%d") if request.date else datetime.now().strftime("%Y-%m-%d")
     
     page_id = client.create_journal_entry(
         date_str=date_str,
         title=request.title,
-        content=request.content,
-        emotions=request.emotions,
-        insights=request.insights
+        content=request.raw_content,
+        emotions=request.emotions_detected,
+        insights=request.key_insights
     )
+    
+    # Process Action Items if any
+    created_tasks = []
+    if page_id and request.action_items:
+        for item in request.action_items:
+            task_id = client.create_task(
+                name=item.title, priority=item.priority, 
+                date=item.date.strftime("%Y-%m-%d"), status=item.status
+            )
+            if task_id: created_tasks.append(item.title)
     
     return {
         "success": bool(page_id), 
-        "data": {
-            "page_id": page_id
-        }
+        "data": {"page_id": page_id, "tasks_created": created_tasks}
     }
 ```
 
@@ -396,39 +394,42 @@ async def get_todays_habits():
 
 #### 6.1.7 Reviews Router
 
+Uses `SaveReviewRequest` from `api/schemas.py`.
+
 ```python
 # api/routers/reviews.py
 from fastapi import APIRouter
-from pydantic import BaseModel
+from api.schemas import SaveReviewRequest
 from orchestration.notion_service import NotionClient
 
 router = APIRouter(prefix="/api/reviews", tags=["Reviews"])
-
-class SaveReviewRequest(BaseModel):
-    review_type: str  # weekly, monthly, quarterly, yearly
-    date: str
-    content: str
-    rating: int | None = None
-    emotions: list[str] | None = None
 
 @router.post("/{review_type}")
 async def save_review(review_type: str, request: SaveReviewRequest):
     """Save a periodic review session result to Notion."""
     client = NotionClient()
     
+    # Format content to include extra fields
+    full_summary = request.review_summary
+    full_summary += f"\n\n### Lessons Learned\n{request.lessons_learned}"
+    if request.next_period_focus:
+        full_summary += "\n\n### Next Period Focus\n" + "\n".join([f"- {item}" for item in request.next_period_focus])
+
     page_id = client.save_review_session(
-        review_type=review_type,
-        date_str=request.date,
-        content=request.content,
-        rating=request.rating,
-        emotions=request.emotions
+        review_type=request.review_type,
+        date_str=request.date.strftime("%Y-%m-%d"),
+        content=full_summary,
+        rating=None, 
+        emotions=None
     )
+    
+    # Handle Goal Updates
+    updated_goals = []
+    # ... logic for updating goals ...
     
     return {
         "success": bool(page_id),
-        "data": {
-            "page_id": page_id
-        }
+        "data": {"page_id": page_id, "updated_goals": updated_goals}
     }
 ```
 

@@ -43,7 +43,7 @@
 ### 6.1: FastAPI Backend (Core API)
 - **DONE** 6.1.1: Setup project structure and dependencies (`api/`, `web/`)
 - **DONE** 6.1.2: Define Pydantic schemas (`api/schemas.py`)
-- **IN REVIEW** 6.1.3: Implement API key authentication middleware (`api/auth.py`)
+- **DONE** 6.1.3: Implement API key authentication middleware (`api/auth.py`)
 - **IN REVIEW** 6.1.4: Setup main FastAPI app with standardized error handling
 - **IN REVIEW** 6.1.5: Implement Context Router (/api/context/*)
 - **IN REVIEW** 6.1.6: Implement Journal Router (/api/journal/*)

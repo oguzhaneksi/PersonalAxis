@@ -22,10 +22,25 @@ def test_health_check():
 def test_auth_missing():
     response = client.get("/api/context/daily")
     assert response.status_code == 403
+    data = response.json()
+    assert data["success"] is False
+    assert data["error"]["message"] == "Missing API Key"
 
 def test_auth_invalid():
     response = client.get("/api/context/daily", headers={"X-API-Key": "wrong"})
     assert response.status_code == 403
+    data = response.json()
+    assert data["success"] is False
+    assert data["error"]["message"] == "Invalid API key"
+
+def test_auth_server_key_not_set(monkeypatch):
+    # Remove the environment variable to simulate misconfiguration
+    monkeypatch.delenv("PERSONALAXIS_API_KEY", raising=False)
+    response = client.get("/api/context/daily", headers={"X-API-Key": "any_key"})
+    assert response.status_code == 500
+    data = response.json()
+    assert data["success"] is False
+    assert data["error"]["message"] == "API key not configured in server"
 
 @patch("api.routers.context.ContextGenerator")
 def test_get_daily_context(mock_gen_cls):
