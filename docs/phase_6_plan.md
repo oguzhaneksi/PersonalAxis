@@ -253,8 +253,10 @@ async def get_daily_context():
     context_md = generator.generate_daily_context(return_content=True)
     return {
         "success": True,
-        "context": context_md,
-        "timestamp": datetime.now().isoformat()
+        "data": {
+            "context": context_md,
+            "timestamp": datetime.now().isoformat()
+        }
     }
 
 @router.get("/review/{review_type}")
@@ -269,9 +271,11 @@ async def get_review_context(
     )
     return {
         "success": True,
-        "review_type": review_type,
-        "period": period,
-        "context": context_md
+        "data": {
+            "review_type": review_type,
+            "period": period,
+            "context": context_md
+        }
     }
 ```
 
@@ -305,7 +309,9 @@ async def quick_journal(request: QuickJournalRequest):
     
     return {
         "success": bool(page_id),
-        "page_id": page_id
+        "data": {
+            "page_id": page_id
+        }
     }
 
 class FullJournalRequest(BaseModel):
@@ -329,7 +335,12 @@ async def save_journal(request: FullJournalRequest):
         insights=request.insights
     )
     
-    return {"success": bool(page_id), "page_id": page_id}
+    return {
+        "success": bool(page_id), 
+        "data": {
+            "page_id": page_id
+        }
+    }
 ```
 
 #### 6.1.5 Goals Router
@@ -349,7 +360,9 @@ async def get_goals_status():
     goals = client.get_active_goals_summary()
     return {
         "success": True, 
-        "goals": goals
+        "data": {
+            "goals": goals
+        }
     }
 ```
 
@@ -374,8 +387,10 @@ async def get_todays_habits():
     
     return {
         "success": True,
-        "date": today,
-        "habits": entry.get("habits", {}) if entry else {}
+        "data": {
+            "date": today,
+            "habits": entry.get("habits", {}) if entry else {}
+        }
     }
 ```
 
@@ -411,7 +426,9 @@ async def save_review(review_type: str, request: SaveReviewRequest):
     
     return {
         "success": bool(page_id),
-        "page_id": page_id
+        "data": {
+            "page_id": page_id
+        }
     }
 ```
 
@@ -450,6 +467,64 @@ Standardized error response format for all endpoints:
     "timestamp": "2026-01-18T10:50:00Z"
   }
 }
+```
+
+#### 6.1.10 Pydantic Schemas (Detailed)
+
+Strict validation is crucial. We will centralize schemas in `api/schemas.py`.
+
+```python
+# api/schemas.py
+from pydantic import BaseModel, Field, validator
+from typing import Optional, List, Literal
+from datetime import date
+
+# --- Common Models ---
+
+class StandardResponse(BaseModel):
+    success: bool
+    data: Optional[dict] = None
+    error: Optional[dict] = None
+
+# --- Journal Models ---
+
+class QuickJournalRequest(BaseModel):
+    content: str = Field(..., min_length=1, max_length=5000, description="Raw journal entry content")
+    title: Optional[str] = Field(None, max_length=200, description="Optional title, defaults to timestamp")
+
+class FullJournalRequest(BaseModel):
+    title: str = Field(..., min_length=1, max_length=200)
+    content: str = Field(..., min_length=1)
+    date: Optional[str] = Field(None, description="ISO format YYYY-MM-DD")
+    emotions: Optional[List[str]] = Field(None, max_items=10)
+    insights: Optional[str] = None
+    
+    @validator('date')
+    def validate_date(cls, v):
+        if v:
+            # Simple ISO format check
+            import re
+            if not re.match(r'^\d{4}-\d{2}-\d{2}$', v):
+                raise ValueError('Date must be in YYYY-MM-DD format')
+        return v
+
+# --- Review Models ---
+
+ReviewType = Literal['weekly', 'monthly', 'quarterly', 'yearly']
+
+class SaveReviewRequest(BaseModel):
+    review_type: ReviewType
+    date: str = Field(..., description="Review date YYYY-MM-DD")
+    content: str = Field(..., min_length=50)
+    rating: Optional[int] = Field(None, ge=1, le=10)
+    emotions: Optional[List[str]] = None
+    next_period_goals: Optional[List[str]] = Field(None, description="Goals identified for next period")
+    
+    @validator('review_type')
+    def validate_type(cls, v):
+        if v not in ['weekly', 'monthly', 'quarterly', 'yearly']:
+            raise ValueError(f"Invalid review type: {v}")
+        return v
 ```
 
 **Key Error Scenarios to Handle:**
