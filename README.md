@@ -1,7 +1,3 @@
-Here is an extensive and professional README for the **PersonalAxis** project, based on the codebase and documentation.
-
----
-
 # PersonalAxis: AI-Powered Life OS 🚀
 
 **PersonalAxis** is a next-generation Life Operating System that transforms personal data management from passive storage into an active coaching and strategic planning system. By bridging **Notion** (as the Single Source of Truth) with advanced AI models (**Gemini** & **ChatGPT**), PersonalAxis helps you align your daily actions with your long-term vision.
