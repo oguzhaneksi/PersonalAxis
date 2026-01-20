@@ -52,10 +52,10 @@
 - **DONE** 6.1.9: Write and verify unit tests for all endpoints (`tests/test_api.py`)
 
 ### 6.2: Cloudflare Tunnel & Deployment
-- **TO DO** 6.2.1: Setup Cloudflare Tunnel on macOS
-- **TO DO** 6.2.2: Configure DNS and Tunnel routing
-- **TO DO** 6.2.3: Setup Cloudflare Access (Email Zero-Trust)
-- **TO DO** 6.2.4: Verify end-to-end connectivity from a mobile device
+- **DONE** 6.2.1: Setup Cloudflare Tunnel on macOS
+- **DONE** 6.2.2: Configure DNS and Tunnel routing
+- **DONE** 6.2.3: Setup Cloudflare Access (Email Zero-Trust)
+- **DONE** 6.2.4: Verify end-to-end connectivity from a mobile device
 
 ### 6.3: PWA Frontend (Minimal UI)
 - **TO DO** 6.3.1: Create basic HTML structure and PWA manifest (`web/index.html`, `manifest.json`)

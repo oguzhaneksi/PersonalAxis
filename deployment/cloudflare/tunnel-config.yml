@@ -1,0 +1,8 @@
+tunnel: 334f4fff-6360-4e51-bd7b-d1881345b76b
+credentials-file: /Users/oguzhaneksi/.cloudflared/334f4fff-6360-4e51-bd7b-d1881345b76b.json
+
+ingress:
+  # Reference specific domain once configured in step 6.2.2
+  # - hostname: api.yourdomain.com
+  #   service: http://localhost:8000
+  - service: http://localhost:8000

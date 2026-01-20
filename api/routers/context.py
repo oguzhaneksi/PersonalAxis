@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Query
 from orchestration.context_generator import ContextGenerator
+from orchestration.review_service import ReviewService
 from datetime import datetime
 from api.exceptions import InvalidReviewTypeError
 from api.error_handlers import handle_notion_errors
@@ -31,9 +32,10 @@ async def get_review_context(
         raise InvalidReviewTypeError(review_type)
 
     generator = ContextGenerator()
+    review_service = ReviewService()
     
     # Auto-calculate period if missing for the response data
-    actual_period = generator.get_period(review_type, period)
+    actual_period = review_service.calculate_period(review_type, period)
 
     context_md = generator.generate_review_context(
         review_type, actual_period, return_content=True
