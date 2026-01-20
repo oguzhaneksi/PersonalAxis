@@ -66,38 +66,6 @@ def review_context(review_type, period, do_notify):
     """Generate periodic review context for AI."""
     try:
         generator = ContextGenerator()
-        
-        target_date = datetime.datetime.now()
-        if period == "last":
-            if review_type == "weekly":
-                target_date -= datetime.timedelta(days=7)
-            elif review_type == "monthly":
-                target_date = target_date.replace(day=1) - datetime.timedelta(days=1)
-            elif review_type == "quarterly":
-                # Subtract 3 months
-                month = target_date.month - 3
-                year = target_date.year
-                if month <= 0:
-                    month += 12
-                    year -= 1
-                target_date = target_date.replace(year=year, month=month)
-            elif review_type == "yearly":
-                target_date = target_date.replace(year=target_date.year - 1)
-            period = None # trigger calculation below with target_date
-            
-        if not period:
-            from orchestration.notion_service import NotionClient
-            client = NotionClient()
-            date_str = target_date.strftime("%Y-%m-%d")
-            if review_type == "weekly":
-                period = client._calculate_week(date_str)
-            elif review_type == "monthly":
-                period = client._calculate_month(date_str)
-            elif review_type == "quarterly":
-                period = client._calculate_quarter(date_str)
-            elif review_type == "yearly":
-                period = client._calculate_year(date_str)
-
         file_path = generator.generate_review_context(review_type, period)
         click.echo(f"Success! {review_type.capitalize()} review context is ready at: {file_path}")
         if do_notify:
@@ -186,19 +154,6 @@ def habits():
 @click.option('--period', help="e.g., 2026-W1, 2026-01. Defaults to current period.")
 def save_review(review_type, period):
     """Save a periodic review session from ChatGPT output."""
-    if not period:
-        from orchestration.notion_service import NotionClient
-        client = NotionClient()
-        today = datetime.datetime.now().strftime("%Y-%m-%d")
-        if review_type == "weekly":
-            period = client._calculate_week(today)
-        elif review_type == "monthly":
-            period = client._calculate_month(today)
-        elif review_type == "quarterly":
-            period = client._calculate_quarter(today)
-        elif review_type == "yearly":
-            period = client._calculate_year(today)
-
     click.echo(f"Paste the ChatGPT {review_type} summary (JSON) below (press Ctrl-D or Ctrl-Z to finish):")
     raw_content = sys.stdin.read()
     

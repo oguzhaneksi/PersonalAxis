@@ -16,6 +16,44 @@ class ContextGenerator:
         self.output_dir = "output"
         os.makedirs(self.output_dir, exist_ok=True)
 
+    def get_period(self, review_type: str, period: Optional[str] = None) -> str:
+        """
+        Calculates the period string based on review_type and optional period hint.
+        Supports 'last' for previous period and None for current period.
+        """
+        target_date = datetime.datetime.now()
+        
+        if period == "last":
+            if review_type == "weekly":
+                target_date -= datetime.timedelta(days=7)
+            elif review_type == "monthly":
+                # First day of this month then minus one day
+                target_date = target_date.replace(day=1) - datetime.timedelta(days=1)
+            elif review_type == "quarterly":
+                # Subtract 3 months
+                month = target_date.month - 3
+                year = target_date.year
+                if month <= 0:
+                    month += 12
+                    year -= 1
+                target_date = target_date.replace(year=year, month=month)
+            elif review_type == "yearly":
+                target_date = target_date.replace(year=target_date.year - 1)
+            period = None # Trigger calculation based on target_date
+
+        if not period:
+            date_str = target_date.strftime("%Y-%m-%d")
+            if review_type == "weekly":
+                return self.notion._calculate_week(date_str)
+            elif review_type == "monthly":
+                return self.notion._calculate_month(date_str)
+            elif review_type == "quarterly":
+                return self.notion._calculate_quarter(date_str)
+            elif review_type == "yearly":
+                return self.notion._calculate_year(date_str)
+        
+        return period
+
     def generate_daily_context(self, return_content: bool = False) -> str:
         """
         Fetches daily data, builds context, and writes to output/context.md.
@@ -48,15 +86,16 @@ class ContextGenerator:
         print(f"✓ Daily context generated: {file_path}")
         return file_path
 
-    def generate_review_context(self, review_type: str, period: str, return_content: bool = False) -> str:
+    def generate_review_context(self, review_type: str, period: Optional[str] = None, return_content: bool = False) -> str:
         """
         Fetches review data and writes to output/review_context.md.
         
         Args:
             review_type: Type of review (weekly, monthly, quarterly, yearly)
-            period: Period identifier (e.g. 2026-W01)
+            period: Period identifier (e.g. 2026-W01) or "last" or None
             return_content: If True, returns generated markdown string.
         """
+        period = self.get_period(review_type, period)
         print(f"Fetching {review_type} review data for {period} from Notion...")
         
         # Map review_type to period_type in Notion
@@ -165,10 +204,11 @@ class ContextGenerator:
             j["content"] = content
         return journals
 
-    def save_review(self, review_type: str, period: str, raw_input: str) -> bool:
+    def save_review(self, review_type: str, period: Optional[str] = None, raw_input: str = "") -> bool:
         """
         Parses JSON-formatted AI review summary and saves to Notion.
         """
+        period = self.get_period(review_type, period)
         try:
             json_str = raw_input.strip()
             if json_str.startswith("```json"):

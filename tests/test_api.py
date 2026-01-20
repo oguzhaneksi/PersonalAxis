@@ -459,7 +459,7 @@ def test_review_context_with_auto_period(mock_gen_cls):
     """Test that review context auto-calculates period when not provided."""
     mock_gen = mock_gen_cls.return_value
     mock_gen.generate_review_context.return_value = "# Review Context"
-    mock_gen.notion._calculate_week.return_value = "2026-W03"
+    mock_gen.get_period.return_value = "2026-W03"
     
     response = client.get("/api/context/review/weekly", headers=get_headers())
     assert response.status_code == 200
@@ -470,6 +470,8 @@ def test_review_context_with_explicit_period(mock_gen_cls):
     """Test that review context uses provided period."""
     mock_gen = mock_gen_cls.return_value
     mock_gen.generate_review_context.return_value = "# Review Context"
+    # mock get_period to return the second argument (period)
+    mock_gen.get_period.side_effect = lambda t, p: p
     
     response = client.get("/api/context/review/weekly?period=2026-W01", headers=get_headers())
     assert response.status_code == 200

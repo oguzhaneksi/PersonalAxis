@@ -32,27 +32,19 @@ async def get_review_context(
 
     generator = ContextGenerator()
     
-    # Auto-calculate period if missing
-    if not period:
-        today_iso = datetime.now().isoformat()
-        if review_type == "weekly":
-            period = generator.notion._calculate_week(today_iso)
-        elif review_type == "monthly":
-            period = generator.notion._calculate_month(today_iso)
-        elif review_type == "quarterly":
-            period = generator.notion._calculate_quarter(today_iso)
-        elif review_type == "yearly":
-            period = generator.notion._calculate_year(today_iso)
+    # Auto-calculate period if missing for the response data
+    actual_period = generator.get_period(review_type, period)
 
     context_md = generator.generate_review_context(
-        review_type, period, return_content=True
+        review_type, actual_period, return_content=True
     )
     
     return {
         "success": True,
         "data": {
             "review_type": review_type,
-            "period": period,
-            "context": context_md
+            "period": actual_period,
+            "context": context_md,
+            "timestamp": datetime.now().isoformat()
         }
     }

@@ -40,24 +40,15 @@ def test_daily_context_cli_failure_with_notify(runner, mocker):
     mock_notify.assert_called_once_with("PersonalAxis Error", "Daily context failed: Notion API Error")
 
 def test_review_context_cli_last_period(runner, mocker):
-    mock_gen = mocker.patch("orchestration.main.ContextGenerator")
-    mock_notion_class = mocker.patch("orchestration.notion_service.NotionClient")
-    mock_notion = mock_notion_class.return_value
-    
-    # Mock datetime to a specific date (Wednesday, Jan 14, 2026)
-    fixed_now = datetime.datetime(2026, 1, 14)
-    mocker.patch("orchestration.main.datetime.datetime", mocker.Mock(now=lambda: fixed_now))
-    
-    # Mock period calculation
-    mock_notion._calculate_week.return_value = "2026-W02" # Week before 2026-W03
+    mock_gen_cls = mocker.patch("orchestration.main.ContextGenerator")
+    mock_gen = mock_gen_cls.return_value
     
     # Running weekly review for 'last' period
     result = runner.invoke(cli, ["review-context", "--type", "weekly", "--period", "last"])
     
     assert result.exit_code == 0
-    # For weekly 'last', it should subtract 7 days from Jan 14 -> Jan 7
-    # calculate_week should be called for Jan 7
-    mock_notion._calculate_week.assert_called_once_with("2026-01-07")
+    # The CLI should pass "last" to the generator
+    mock_gen.generate_review_context.assert_called_once_with("weekly", "last")
 
 def test_quick_journal_cli(runner, mocker):
     mock_notion_class = mocker.patch("orchestration.notion_service.NotionClient")

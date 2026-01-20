@@ -274,7 +274,8 @@ async def get_review_context(
         "data": {
             "review_type": review_type,
             "period": period,
-            "context": context_md
+            "context": context_md,
+            "timestamp": datetime.now().isoformat()
         }
     }
 ```
