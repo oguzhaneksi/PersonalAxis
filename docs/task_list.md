@@ -44,7 +44,7 @@
 - **DONE** 6.1.1: Setup project structure and dependencies (`api/`, `web/`)
 - **DONE** 6.1.2: Define Pydantic schemas (`api/schemas.py`)
 - **DONE** 6.1.3: Implement API key authentication middleware (`api/auth.py`)
-- **IN REVIEW** 6.1.4: Setup main FastAPI app with standardized error handling
+- **DONE** 6.1.4: Setup main FastAPI app with standardized error handling
 - **IN REVIEW** 6.1.5: Implement Context Router (/api/context/*)
 - **IN REVIEW** 6.1.6: Implement Journal Router (/api/journal/*)
 - **IN REVIEW** 6.1.7: Implement Goals & Habits Routers (/api/goals/*, /api/habits/*)
