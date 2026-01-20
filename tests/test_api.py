@@ -489,3 +489,643 @@ def test_review_context_with_explicit_period(mock_gen_cls):
     response = client.get("/api/context/review/weekly?period=2026-W01", headers=get_headers())
     assert response.status_code == 200
     assert response.json()["data"]["period"] == "2026-W01"
+
+
+# ============================================================================
+# ADDITIONAL VALIDATION TESTS
+# ============================================================================
+
+def test_validation_empty_wins_list():
+    """Test that empty wins list fails validation."""
+    payload = {
+        "review_type": "weekly",
+        "date": "2026-01-18",
+        "period_assessment": "Başarılı",
+        "review_summary": "Test summary with enough characters to pass min length validation",
+        "wins": [],  # Empty list should fail
+        "challenges": ["Challenge"],
+        "lessons_learned": "Learned something",
+        "next_period_focus": ["Focus"]
+    }
+    response = client.post("/api/reviews/weekly", json=payload, headers=get_headers())
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "VALIDATION_ERROR"
+
+def test_validation_empty_challenges_list():
+    """Test that empty challenges list fails validation."""
+    payload = {
+        "review_type": "weekly",
+        "date": "2026-01-18",
+        "period_assessment": "Başarılı",
+        "review_summary": "Test summary with enough characters to pass min length validation",
+        "wins": ["Win"],
+        "challenges": [],  # Empty list should fail
+        "lessons_learned": "Learned something",
+        "next_period_focus": ["Focus"]
+    }
+    response = client.post("/api/reviews/weekly", json=payload, headers=get_headers())
+    assert response.status_code == 422
+
+def test_validation_empty_next_period_focus():
+    """Test that empty next_period_focus list fails validation."""
+    payload = {
+        "review_type": "weekly",
+        "date": "2026-01-18",
+        "period_assessment": "Başarılı",
+        "review_summary": "Test summary with enough characters to pass min length validation",
+        "wins": ["Win"],
+        "challenges": ["Challenge"],
+        "lessons_learned": "Learned something",
+        "next_period_focus": []  # Empty list should fail
+    }
+    response = client.post("/api/reviews/weekly", json=payload, headers=get_headers())
+    assert response.status_code == 422
+
+def test_validation_review_summary_too_short():
+    """Test that review_summary under min_length fails validation."""
+    payload = {
+        "review_type": "weekly",
+        "date": "2026-01-18",
+        "period_assessment": "Başarılı",
+        "review_summary": "Too short",  # Less than 50 chars
+        "wins": ["Win"],
+        "challenges": ["Challenge"],
+        "lessons_learned": "Learned something",
+        "next_period_focus": ["Focus"]
+    }
+    response = client.post("/api/reviews/weekly", json=payload, headers=get_headers())
+    assert response.status_code == 422
+
+def test_validation_invalid_period_assessment():
+    """Test that invalid period_assessment value fails validation."""
+    payload = {
+        "review_type": "weekly",
+        "date": "2026-01-18",
+        "period_assessment": "InvalidStatus",  # Not in enum
+        "review_summary": "Test summary with enough characters to pass min length validation",
+        "wins": ["Win"],
+        "challenges": ["Challenge"],
+        "lessons_learned": "Learned something",
+        "next_period_focus": ["Focus"]
+    }
+    response = client.post("/api/reviews/weekly", json=payload, headers=get_headers())
+    assert response.status_code == 422
+
+def test_validation_invalid_goal_status():
+    """Test that invalid goal status in goal_updates fails validation."""
+    payload = {
+        "review_type": "weekly",
+        "date": "2026-01-18",
+        "period_assessment": "Başarılı",
+        "review_summary": "Test summary with enough characters to pass min length validation",
+        "wins": ["Win"],
+        "challenges": ["Challenge"],
+        "lessons_learned": "Learned something",
+        "next_period_focus": ["Focus"],
+        "goal_updates": [
+            {
+                "goal_name": "Test Goal",
+                "new_status": "InvalidStatus",  # Not in enum
+                "progress_delta": 10,
+                "notes": "Test notes"
+            }
+        ]
+    }
+    response = client.post("/api/reviews/weekly", json=payload, headers=get_headers())
+    assert response.status_code == 422
+
+def test_validation_progress_delta_out_of_range_positive():
+    """Test that progress_delta > 100 fails validation."""
+    payload = {
+        "review_type": "weekly",
+        "date": "2026-01-18",
+        "period_assessment": "Başarılı",
+        "review_summary": "Test summary with enough characters to pass min length validation",
+        "wins": ["Win"],
+        "challenges": ["Challenge"],
+        "lessons_learned": "Learned something",
+        "next_period_focus": ["Focus"],
+        "goal_updates": [
+            {
+                "goal_name": "Test Goal",
+                "new_status": "Tamamlandı",
+                "progress_delta": 101,  # Out of range
+                "notes": "Test notes"
+            }
+        ]
+    }
+    response = client.post("/api/reviews/weekly", json=payload, headers=get_headers())
+    assert response.status_code == 422
+
+def test_validation_progress_delta_out_of_range_negative():
+    """Test that progress_delta < -100 fails validation."""
+    payload = {
+        "review_type": "weekly",
+        "date": "2026-01-18",
+        "period_assessment": "Başarılı",
+        "review_summary": "Test summary with enough characters to pass min length validation",
+        "wins": ["Win"],
+        "challenges": ["Challenge"],
+        "lessons_learned": "Learned something",
+        "next_period_focus": ["Focus"],
+        "goal_updates": [
+            {
+                "goal_name": "Test Goal",
+                "new_status": "Tamamlandı",
+                "progress_delta": -101,  # Out of range
+                "notes": "Test notes"
+            }
+        ]
+    }
+    response = client.post("/api/reviews/weekly", json=payload, headers=get_headers())
+    assert response.status_code == 422
+
+def test_validation_journal_content_too_long():
+    """Test that journal content exceeding max_length fails validation."""
+    payload = {"content": "x" * 5001}  # Exceeds 5000 char limit
+    response = client.post("/api/journal/quick", json=payload, headers=get_headers())
+    assert response.status_code == 422
+
+def test_validation_journal_empty_content():
+    """Test that empty journal content fails validation."""
+    payload = {"content": ""}
+    response = client.post("/api/journal/quick", json=payload, headers=get_headers())
+    assert response.status_code == 422
+
+def test_validation_empty_lessons_learned():
+    """Test that empty lessons_learned fails validation."""
+    payload = {
+        "review_type": "weekly",
+        "date": "2026-01-18",
+        "period_assessment": "Başarılı",
+        "review_summary": "Test summary with enough characters to pass min length validation",
+        "wins": ["Win"],
+        "challenges": ["Challenge"],
+        "lessons_learned": "",  # Empty string
+        "next_period_focus": ["Focus"]
+    }
+    response = client.post("/api/reviews/weekly", json=payload, headers=get_headers())
+    assert response.status_code == 422
+
+
+# ============================================================================
+# JOURNAL ENDPOINT EDGE CASES
+# ============================================================================
+
+@patch("api.routers.journal.JournalService")
+def test_journal_default_date_handling(mock_service_cls):
+    """Test that journal defaults to today when date is None."""
+    mock_service = mock_service_cls.return_value
+    mock_service.save_journal_from_structured_data.return_value = "page-id"
+    
+    payload = {
+        "title": "Test Entry",
+        "raw_content": "Content without date"
+        # date is omitted, should default to today
+    }
+    
+    response = client.post("/api/journal/", json=payload, headers=get_headers())
+    assert response.status_code == 200
+    
+    # Verify that save was called with today's date
+    call_args = mock_service.save_journal_from_structured_data.call_args
+    assert datetime.datetime.now().strftime("%Y-%m-%d") == call_args.kwargs["date_str"]
+
+@patch("api.routers.journal.JournalService")
+def test_quick_journal_default_title(mock_service_cls):
+    """Test that quick journal generates default title when None."""
+    mock_service = mock_service_cls.return_value
+    mock_service.save_journal_from_structured_data.return_value = "page-id"
+    
+    payload = {"content": "Test content"}  # No title provided
+    
+    response = client.post("/api/journal/quick", json=payload, headers=get_headers())
+    assert response.status_code == 200
+    
+    # Verify that a default title was generated
+    call_args = mock_service.save_journal_from_structured_data.call_args
+    assert "Quick Entry" in call_args.kwargs["title"]
+
+@patch("api.routers.journal.JournalService")
+def test_journal_with_empty_action_items(mock_service_cls):
+    """Test journal save with empty action_items list."""
+    mock_service = mock_service_cls.return_value
+    mock_service.save_journal_from_structured_data.return_value = "page-id"
+    
+    payload = {
+        "title": "Test",
+        "raw_content": "Content",
+        "action_items": []
+    }
+    
+    response = client.post("/api/journal/", json=payload, headers=get_headers())
+    assert response.status_code == 200
+    assert response.json()["data"]["tasks_created"] == []
+
+@patch("api.routers.journal.JournalService")
+def test_journal_with_multiple_action_items(mock_service_cls):
+    """Test journal save with multiple action items."""
+    mock_service = mock_service_cls.return_value
+    mock_service.save_journal_from_structured_data.return_value = "page-id"
+    
+    payload = {
+        "title": "Test",
+        "raw_content": "Content",
+        "action_items": [
+            {
+                "priority": "P1",
+                "status": "Aktif",
+                "title": "Task 1",
+                "date": "2026-01-20"
+            },
+            {
+                "priority": "P2",
+                "status": "Aktif",
+                "title": "Task 2",
+                "date": "2026-01-21"
+            },
+            {
+                "priority": "P3",
+                "status": "Aktif",
+                "title": "Task 3",
+                "date": "2026-01-22"
+            }
+        ]
+    }
+    
+    response = client.post("/api/journal/", json=payload, headers=get_headers())
+    assert response.status_code == 200
+    assert len(response.json()["data"]["tasks_created"]) == 3
+    assert response.json()["data"]["tasks_created"] == ["Task 1", "Task 2", "Task 3"]
+
+@patch("api.routers.journal.JournalService")
+def test_journal_with_all_optional_fields(mock_service_cls):
+    """Test journal save with all optional fields populated."""
+    mock_service = mock_service_cls.return_value
+    mock_service.save_journal_from_structured_data.return_value = "page-id"
+    
+    payload = {
+        "title": "Complete Journal",
+        "raw_content": "Full content",
+        "date": "2026-01-18",
+        "emotions_detected": ["Happy", "Grateful", "Motivated"],
+        "key_insights": "Deep insights here",
+        "action_items": [
+            {
+                "priority": "P1",
+                "status": "Aktif",
+                "title": "Important Task",
+                "date": "2026-01-19"
+            }
+        ]
+    }
+    
+    response = client.post("/api/journal/", json=payload, headers=get_headers())
+    assert response.status_code == 200
+    
+    # Verify all fields were passed to service
+    call_args = mock_service.save_journal_from_structured_data.call_args
+    assert call_args.kwargs["emotions"] == ["Happy", "Grateful", "Motivated"]
+    assert call_args.kwargs["insights"] == "Deep insights here"
+
+
+# ============================================================================
+# REVIEW ENDPOINT EDGE CASES
+# ============================================================================
+
+@patch("api.routers.reviews.ReviewService")
+def test_review_with_empty_goal_updates(mock_service_cls):
+    """Test review save with no goal updates (valid scenario)."""
+    mock_service = mock_service_cls.return_value
+    mock_service.save_review_from_structured_data.return_value = "review-id"
+    mock_service.calculate_period.return_value = "2026-W03"
+    
+    payload = {
+        "review_type": "weekly",
+        "date": "2026-01-18",
+        "period_assessment": "Başarılı",
+        "review_summary": "Test summary with enough characters to pass min length validation",
+        "wins": ["Win"],
+        "challenges": ["Challenge"],
+        "lessons_learned": "Learned something",
+        "next_period_focus": ["Focus"],
+        "goal_updates": []  # Empty but valid
+    }
+    
+    response = client.post("/api/reviews/weekly", json=payload, headers=get_headers())
+    assert response.status_code == 200
+    assert response.json()["data"]["updated_goals"] == []
+
+@patch("api.routers.reviews.ReviewService")
+def test_review_with_multiple_goal_updates(mock_service_cls):
+    """Test review save with multiple goal updates."""
+    mock_service = mock_service_cls.return_value
+    mock_service.save_review_from_structured_data.return_value = "review-id"
+    mock_service.calculate_period.return_value = "2026-W03"
+    
+    payload = {
+        "review_type": "weekly",
+        "date": "2026-01-18",
+        "period_assessment": "Karışık",
+        "review_summary": "Test summary with enough characters to pass min length validation",
+        "wins": ["Win 1", "Win 2"],
+        "challenges": ["Challenge 1", "Challenge 2"],
+        "lessons_learned": "Multiple lessons learned",
+        "next_period_focus": ["Focus 1", "Focus 2"],
+        "goal_updates": [
+            {
+                "goal_name": "Goal 1",
+                "new_status": "Devam Ediyor",
+                "progress_delta": 15,
+                "notes": "Good progress"
+            },
+            {
+                "goal_name": "Goal 2",
+                "new_status": "Tamamlandı",
+                "progress_delta": 100,
+                "notes": "Completed!"
+            },
+            {
+                "goal_name": "Goal 3",
+                "new_status": "Ertelendi",
+                "progress_delta": -10,
+                "notes": "Postponed due to priorities"
+            }
+        ]
+    }
+    
+    response = client.post("/api/reviews/weekly", json=payload, headers=get_headers())
+    assert response.status_code == 200
+    assert len(response.json()["data"]["updated_goals"]) == 3
+    assert response.json()["data"]["updated_goals"] == ["Goal 1", "Goal 2", "Goal 3"]
+
+@patch("api.routers.reviews.ReviewService")
+def test_review_negative_progress_delta(mock_service_cls):
+    """Test review with negative progress delta (regression)."""
+    mock_service = mock_service_cls.return_value
+    mock_service.save_review_from_structured_data.return_value = "review-id"
+    mock_service.calculate_period.return_value = "2026-W03"
+    
+    payload = {
+        "review_type": "weekly",
+        "date": "2026-01-18",
+        "period_assessment": "Zorlayıcı",
+        "review_summary": "Difficult week with some setbacks but learning opportunities present",
+        "wins": ["Small win"],
+        "challenges": ["Major setback"],
+        "lessons_learned": "Need to adjust approach",
+        "next_period_focus": ["Recovery"],
+        "goal_updates": [
+            {
+                "goal_name": "Fitness Goal",
+                "new_status": "Devam Ediyor",
+                "progress_delta": -25,  # Negative progress
+                "notes": "Missed workouts due to illness"
+            }
+        ]
+    }
+    
+    response = client.post("/api/reviews/weekly", json=payload, headers=get_headers())
+    assert response.status_code == 200
+
+@patch("api.routers.reviews.ReviewService")
+def test_review_all_assessment_types(mock_service_cls):
+    """Test review with each assessment type."""
+    mock_service = mock_service_cls.return_value
+    mock_service.save_review_from_structured_data.return_value = "review-id"
+    mock_service.calculate_period.return_value = "2026-W03"
+    
+    assessment_types = ["Başarılı", "Karışık", "Zorlayıcı"]
+    
+    for assessment in assessment_types:
+        payload = {
+            "review_type": "weekly",
+            "date": "2026-01-18",
+            "period_assessment": assessment,
+            "review_summary": f"Testing {assessment} assessment with sufficient length for validation",
+            "wins": ["Win"],
+            "challenges": ["Challenge"],
+            "lessons_learned": "Lesson",
+            "next_period_focus": ["Focus"]
+        }
+        
+        response = client.post("/api/reviews/weekly", json=payload, headers=get_headers())
+        assert response.status_code == 200, f"Failed for assessment: {assessment}"
+
+
+# ============================================================================
+# HABITS ENDPOINT EDGE CASES
+# ============================================================================
+
+@patch("api.routers.habits.HabitService")
+def test_habits_empty_list(mock_service_cls):
+    """Test habits endpoint with empty habits list."""
+    mock_service = mock_service_cls.return_value
+    mock_service.get_todays_habits.return_value = []
+    
+    response = client.get("/api/habits/", headers=get_headers())
+    assert response.status_code == 200
+    assert response.json()["data"]["habits"] == []
+
+@patch("api.routers.habits.HabitService")
+def test_habits_missing_properties(mock_service_cls):
+    """Test habits with missing/incomplete properties."""
+    mock_service = mock_service_cls.return_value
+    mock_service.get_todays_habits.return_value = [
+        {
+            "properties": {
+                "Ad": {"title": [{"plain_text": "Habit 1"}]}
+                # Missing Frekans and Son Tamamlama
+            }
+        }
+    ]
+    
+    response = client.get("/api/habits/", headers=get_headers())
+    assert response.status_code == 200
+    
+    habits = response.json()["data"]["habits"]
+    assert len(habits) == 1
+    assert habits[0]["name"] == "Habit 1"
+    assert habits[0]["frequency"] == "Belirsiz"  # Default value
+    assert habits[0]["last_completed"] is None
+
+@patch("api.routers.habits.HabitService")
+def test_habits_with_null_last_completed(mock_service_cls):
+    """Test habits with null last_completed date."""
+    mock_service = mock_service_cls.return_value
+    mock_service.get_todays_habits.return_value = [
+        {
+            "properties": {
+                "Ad": {"title": [{"plain_text": "New Habit"}]},
+                "Frekans": {"select": {"name": "Weekly"}},
+                "Son Tamamlama": {"date": None}  # Never completed
+            }
+        }
+    ]
+    
+    response = client.get("/api/habits/", headers=get_headers())
+    assert response.status_code == 200
+    
+    habits = response.json()["data"]["habits"]
+    assert habits[0]["last_completed"] is None
+
+@patch("api.routers.habits.HabitService")
+def test_habits_multiple_frequencies(mock_service_cls):
+    """Test habits with different frequency types."""
+    mock_service = mock_service_cls.return_value
+    mock_service.get_todays_habits.return_value = [
+        {
+            "properties": {
+                "Ad": {"title": [{"plain_text": "Daily Habit"}]},
+                "Frekans": {"select": {"name": "Daily"}},
+                "Son Tamamlama": {"date": {"start": "2026-01-20"}}
+            }
+        },
+        {
+            "properties": {
+                "Ad": {"title": [{"plain_text": "Weekly Habit"}]},
+                "Frekans": {"select": {"name": "Weekly"}},
+                "Son Tamamlama": {"date": {"start": "2026-01-15"}}
+            }
+        },
+        {
+            "properties": {
+                "Ad": {"title": [{"plain_text": "Monthly Habit"}]},
+                "Frekans": {"select": {"name": "Monthly"}},
+                "Son Tamamlama": {"date": {"start": "2026-01-01"}}
+            }
+        }
+    ]
+    
+    response = client.get("/api/habits/", headers=get_headers())
+    assert response.status_code == 200
+    
+    habits = response.json()["data"]["habits"]
+    assert len(habits) == 3
+    assert habits[0]["frequency"] == "Daily"
+    assert habits[1]["frequency"] == "Weekly"
+    assert habits[2]["frequency"] == "Monthly"
+
+
+# ============================================================================
+# GOALS ENDPOINT EDGE CASES
+# ============================================================================
+
+@patch("api.routers.goals.GoalService")
+def test_goals_empty_list(mock_service_cls):
+    """Test goals endpoint with empty goals list."""
+    mock_service = mock_service_cls.return_value
+    mock_service.get_active_goals.return_value = []
+    
+    response = client.get("/api/goals/status", headers=get_headers())
+    assert response.status_code == 200
+    assert response.json()["data"]["goals"] == []
+
+@patch("api.routers.goals.GoalService")
+def test_goals_multiple_goals(mock_service_cls):
+    """Test goals endpoint with multiple goals."""
+    mock_service = mock_service_cls.return_value
+    mock_service.get_active_goals.return_value = [
+        {"id": "1", "name": "Weekly Goal", "type": "Weekly"},
+        {"id": "2", "name": "Monthly Goal", "type": "Monthly"},
+        {"id": "3", "name": "Quarterly Goal", "type": "Quarterly"},
+    ]
+    
+    response = client.get("/api/goals/status", headers=get_headers())
+    assert response.status_code == 200
+    
+    goals = response.json()["data"]["goals"]
+    assert len(goals) == 3
+
+
+# ============================================================================
+# SUCCESS RESPONSE FORMAT TESTS
+# ============================================================================
+
+@patch("api.routers.context.ContextGenerator")
+def test_success_response_structure(mock_gen_cls):
+    """Test that success responses follow standardized format."""
+    mock_gen = mock_gen_cls.return_value
+    mock_gen.generate_daily_context.return_value = "# Context"
+    
+    response = client.get("/api/context/daily", headers=get_headers())
+    data = response.json()
+    
+    # Check standard success structure
+    assert "success" in data
+    assert data["success"] is True
+    assert "data" in data
+    assert "timestamp" in data["data"]
+    
+    # Timestamp should be ISO format
+    assert "T" in data["data"]["timestamp"]
+
+@patch("api.routers.journal.JournalService")
+def test_success_response_timestamp_format(mock_service_cls):
+    """Test that timestamps in success responses are ISO formatted."""
+    mock_service = mock_service_cls.return_value
+    mock_service.save_journal_from_structured_data.return_value = "page-id"
+    
+    payload = {"content": "Test"}
+    response = client.post("/api/journal/quick", json=payload, headers=get_headers())
+    
+    assert response.status_code == 200
+    # The response doesn't include timestamp, only success and data with page_id
+
+
+# ============================================================================
+# CONTEXT ROUTER ADDITIONAL TESTS
+# ============================================================================
+
+@patch("api.routers.context.ContextGenerator")
+def test_context_all_review_types(mock_gen_cls):
+    """Test review context generation for all valid review types."""
+    mock_gen = mock_gen_cls.return_value
+    mock_gen.generate_review_context.return_value = "# Review"
+    mock_gen.get_period.return_value = "2026-W03"
+    
+    review_types = ["weekly", "monthly", "quarterly", "yearly"]
+    
+    for review_type in review_types:
+        response = client.get(f"/api/context/review/{review_type}", headers=get_headers())
+        assert response.status_code == 200, f"Failed for {review_type}"
+        assert response.json()["data"]["review_type"] == review_type
+
+
+# ============================================================================
+# SPECIAL CHARACTERS AND EDGE CASES
+# ============================================================================
+
+@patch("api.routers.journal.JournalService")
+def test_journal_with_turkish_characters(mock_service_cls):
+    """Test journal content with Turkish special characters."""
+    mock_service = mock_service_cls.return_value
+    mock_service.save_journal_from_structured_data.return_value = "page-id"
+    
+    payload = {
+        "content": "Bugün çok güzel bir gündü. İşler başarılı geçti. Şükürler olsun! Öğrendim ve büyüdüm."
+    }
+    
+    response = client.post("/api/journal/quick", json=payload, headers=get_headers())
+    assert response.status_code == 200
+
+@patch("api.routers.reviews.ReviewService")
+def test_review_with_special_characters(mock_service_cls):
+    """Test review with emoji and special characters."""
+    mock_service = mock_service_cls.return_value
+    mock_service.save_review_from_structured_data.return_value = "review-id"
+    mock_service.calculate_period.return_value = "2026-W03"
+    
+    payload = {
+        "review_type": "weekly",
+        "date": "2026-01-18",
+        "period_assessment": "Başarılı",
+        "review_summary": "Great week! 🎉 Achieved 90% of goals. türkçe karakterler: ğüşiöç ĞÜŞIÖÇ",
+        "wins": ["Win 💪", "Success ✨"],
+        "challenges": ["Challenge ⚠️"],
+        "lessons_learned": "Always stay focused 🎯",
+        "next_period_focus": ["Focus 🔥"]
+    }
+    
+    response = client.post("/api/reviews/weekly", json=payload, headers=get_headers())
+    assert response.status_code == 200
