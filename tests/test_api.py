@@ -236,6 +236,71 @@ def test_notion_generic_api_error(mock_client_cls):
     assert data["error"]["details"]["notion_status"] == 500
 
 
+@patch("api.routers.context.ContextGenerator")
+def test_notion_restricted_resource_error(mock_gen_cls):
+    """Test NOTION_AUTH_FAILED error when Notion returns restricted_resource."""
+    mock_gen = mock_gen_cls.return_value
+    mock_gen.generate_daily_context.side_effect = create_mock_api_error("restricted_resource", 403)
+    
+    response = client.get("/api/context/daily", headers=get_headers())
+    assert response.status_code == 401  # Mapped to 401 in error_handlers
+    data = response.json()
+    assert data["success"] is False
+    assert data["error"]["code"] == "NOTION_AUTH_FAILED"
+
+
+@patch("api.routers.context.ContextGenerator")
+def test_notion_object_not_found_error(mock_gen_cls):
+    """Test NOTION_RESOURCE_NOT_FOUND error when Notion returns object_not_found."""
+    mock_gen = mock_gen_cls.return_value
+    mock_gen.generate_daily_context.side_effect = create_mock_api_error("object_not_found", 404)
+    
+    response = client.get("/api/context/daily", headers=get_headers())
+    assert response.status_code == 404
+    data = response.json()
+    assert data["success"] is False
+    assert data["error"]["code"] == "NOTION_RESOURCE_NOT_FOUND"
+
+
+@patch("api.routers.context.ContextGenerator")
+def test_notion_service_unavailable_error(mock_gen_cls):
+    """Test NOTION_API_ERROR (502) when Notion returns service_unavailable."""
+    mock_gen = mock_gen_cls.return_value
+    mock_gen.generate_daily_context.side_effect = create_mock_api_error("service_unavailable", 503)
+    
+    response = client.get("/api/context/daily", headers=get_headers())
+    assert response.status_code == 502
+    data = response.json()
+    assert data["error"]["code"] == "NOTION_API_ERROR"
+    assert data["error"]["details"]["notion_status"] == 503
+
+
+@patch("api.routers.context.ContextGenerator")
+def test_notion_conflict_error(mock_gen_cls):
+    """Test NOTION_API_ERROR (502) when Notion returns conflict_error."""
+    mock_gen = mock_gen_cls.return_value
+    mock_gen.generate_daily_context.side_effect = create_mock_api_error("conflict_error", 409)
+    
+    response = client.get("/api/context/daily", headers=get_headers())
+    assert response.status_code == 502
+    data = response.json()
+    assert data["error"]["code"] == "NOTION_API_ERROR"
+    assert data["error"]["details"]["notion_status"] == 409
+
+
+@patch("api.routers.context.ContextGenerator")
+def test_notion_validation_error(mock_gen_cls):
+    """Test NOTION_API_ERROR (502) when Notion returns validation_error."""
+    mock_gen = mock_gen_cls.return_value
+    mock_gen.generate_daily_context.side_effect = create_mock_api_error("validation_error", 400)
+    
+    response = client.get("/api/context/daily", headers=get_headers())
+    assert response.status_code == 502
+    data = response.json()
+    assert data["error"]["code"] == "NOTION_API_ERROR"
+    assert data["error"]["details"]["notion_status"] == 400
+
+
 # ============================================================================
 # VALIDATION ERROR TESTS
 # ============================================================================

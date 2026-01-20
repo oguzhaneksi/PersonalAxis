@@ -6,12 +6,13 @@ and other common exceptions, reducing code duplication across routers.
 """
 
 from functools import wraps
-from notion_client.errors import APIResponseError
+from notion_client.errors import APIResponseError, APIErrorCode
 from api.exceptions import (
     NotionAuthError,
     NotionRateLimitError,
     NotionAPIError,
-    NotionTimeoutError
+    NotionTimeoutError,
+    NotionResourceNotFoundError
 )
 import requests
 
@@ -41,10 +42,28 @@ def handle_notion_errors(func):
             return await func(*args, **kwargs)
         except APIResponseError as e:
             # Handle Notion API errors with specific error codes
-            if e.code == "unauthorized":
+            if e.code == APIErrorCode.Unauthorized:
                 raise NotionAuthError(str(e))
-            elif e.code == "rate_limited":
+            elif e.code == APIErrorCode.RestrictedResource:
+                raise NotionAuthError(str(e))
+            elif e.code == APIErrorCode.ObjectNotFound:
+                raise NotionResourceNotFoundError(
+                    resource_type="Notion object",
+                    resource_name="requested resource"
+                )
+            elif e.code == APIErrorCode.RateLimited:
                 raise NotionRateLimitError()
+            elif e.code == APIErrorCode.ServiceUnavailable:
+                raise NotionAPIError(503, str(e))
+            elif e.code == APIErrorCode.ConflictError:
+                raise NotionAPIError(409, str(e))
+            elif e.code in [
+                APIErrorCode.InvalidJSON,
+                APIErrorCode.InvalidRequestURL,
+                APIErrorCode.InvalidRequest,
+                APIErrorCode.ValidationError
+            ]:
+                raise NotionAPIError(400, str(e))
             else:
                 raise NotionAPIError(e.status, str(e))
         except requests.exceptions.Timeout:
