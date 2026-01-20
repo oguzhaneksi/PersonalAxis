@@ -410,33 +410,53 @@ class NotionClient:
             print(f"Error creating task: {e}")
             return ""
 
-    def create_review_session(self, review_type: str, period: str, summary: str, assessment: str, wins: List[str] = None, challenges: List[str] = None) -> str:
+    def create_review_session(self, review_type: str, period: str, summary: str, assessment: str, wins: List[str] = None, challenges: List[str] = None, lessons_learned: str = None, next_period_focus: List[str] = None) -> str:
         """
         Create a new review session entry in Notion.
         """
         if not self.db_ids["reviews"]:
             return ""
 
+        # Map review_type to Turkish schema options
+        type_mapping = {
+            "weekly": "Haftalık",
+            "monthly": "Aylık",
+            "quarterly": "Çeyreklik",
+            "yearly": "Yıllık"
+        }
+        mapped_type = type_mapping.get(review_type.lower(), "Haftalık")
+
         properties = {
-            "Ad": {"title": [{"text": {"content": f"{period} {review_type.capitalize()} Değerlendirme"}}]},
-            "Tip": {"select": {"name": review_type.capitalize()}},
-            "Dönem": {"rich_text": [{"text": {"content": period}}]},
-            "Değerlendirme": {"select": {"name": assessment}},
+            "Dönem": {"title": [{"text": {"content": f"{period} {mapped_type} Değerlendirme"}}]},
+            "Değerlendirme Tipi": {"select": {"name": mapped_type}},
+            "Gerçekleştirilme Tarihi": {"date": {"start": datetime.datetime.now().strftime("%Y-%m-%d")}},
         }
 
         children = [
-            {"object": "block", "type": "paragraph", "paragraph": {"rich_text": [{"text": {"content": summary[:2000]}}]}}
+            {"object": "block", "type": "heading_2", "heading_2": {"rich_text": [{"text": {"content": "Özet"}}]}},
+            {"object": "block", "type": "paragraph", "paragraph": {"rich_text": [{"text": {"content": summary}}]}},
+            {"object": "block", "type": "heading_2", "heading_2": {"rich_text": [{"text": {"content": "Genel Değerlendirme"}}]}},
+            {"object": "block", "type": "paragraph", "paragraph": {"rich_text": [{"text": {"content": assessment}}]}}
         ]
 
         if wins:
-            children.append({"object": "block", "type": "heading_3", "heading_3": {"rich_text": [{"text": {"content": "Kazanımlar"}}]}})
+            children.append({"object": "block", "type": "heading_2", "heading_2": {"rich_text": [{"text": {"content": "Kazanımlar"}}]}})
             for win in wins:
                 children.append({"object": "block", "type": "bulleted_list_item", "bulleted_list_item": {"rich_text": [{"text": {"content": win}}]}})
 
         if challenges:
-            children.append({"object": "block", "type": "heading_3", "heading_3": {"rich_text": [{"text": {"content": "Zorluklar"}}]}})
+            children.append({"object": "block", "type": "heading_2", "heading_2": {"rich_text": [{"text": {"content": "Zorluklar"}}]}})
             for ch in challenges:
                 children.append({"object": "block", "type": "bulleted_list_item", "bulleted_list_item": {"rich_text": [{"text": {"content": ch}}]}})
+
+        if lessons_learned:
+            children.append({"object": "block", "type": "heading_2", "heading_2": {"rich_text": [{"text": {"content": "Öğrenilen Dersler"}}]}})
+            children.append({"object": "block", "type": "paragraph", "paragraph": {"rich_text": [{"text": {"content": lessons_learned}}]}})
+
+        if next_period_focus:
+            children.append({"object": "block", "type": "heading_2", "heading_2": {"rich_text": [{"text": {"content": "Gelecek Dönem Odakları"}}]}})
+            for focus in next_period_focus:
+                children.append({"object": "block", "type": "bulleted_list_item", "bulleted_list_item": {"rich_text": [{"text": {"content": focus}}]}})
 
         try:
             response = self.client.pages.create(
@@ -497,54 +517,3 @@ class NotionClient:
         if results:
             return results[0]
         return None
-
-    def save_review_session(self, review_type: str, date_str: str, content: str, rating: Optional[int] = None, emotions: Optional[List[str]] = None) -> str:
-        """
-        Save a manual review session (from Mobile App/API).
-        
-        Args:
-            review_type: weekly, monthly, quarterly, yearly
-            date_str: YYYY-MM-DD
-            content: Main review text
-            rating: 1-10 rating
-            emotions: List of emotions
-            
-        Returns:
-            Page ID if successful
-        """
-        # Calculate period based on type and date
-        period = ""
-        try:
-            if review_type == "weekly":
-                period = self._calculate_week(date_str)
-            elif review_type == "monthly":
-                period = self._calculate_month(date_str)
-            elif review_type == "quarterly":
-                period = self._calculate_quarter(date_str)
-            elif review_type == "yearly":
-                period = self._calculate_year(date_str)
-        except Exception as e:
-            print(f"Error calculating period: {e}")
-            period = date_str
-
-        # Determine assessment based on rating
-        assessment = "Normal"
-        if rating:
-            if rating >= 8: assessment = "Harika"
-            elif rating <= 4: assessment = "Zorlu"
-            
-        # Append extra info to summary content
-        summary = content
-        if rating:
-            summary += f"\n\n**Rating:** {rating}/10"
-        if emotions:
-            summary += f"\n**Emotions:** {', '.join(emotions)}"
-            
-        return self.create_review_session(
-            review_type=review_type,
-            period=period,
-            summary=summary,
-            assessment=assessment,
-            wins=[],
-            challenges=[]
-        )

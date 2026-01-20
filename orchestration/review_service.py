@@ -77,10 +77,13 @@ class ReviewService:
         try:
             data = parse_ai_json(raw_input)
             
+            
             summary = data.get("review_summary", "")
             assessment = data.get("period_assessment", "Karışık")
             wins = data.get("wins", [])
             challenges = data.get("challenges", [])
+            lessons_learned = data.get("lessons_learned", "")
+            next_period_focus = data.get("next_period_focus", [])
             goal_updates = data.get("goal_updates", [])
             
         except (json.JSONDecodeError, AttributeError) as e:
@@ -95,6 +98,8 @@ class ReviewService:
             assessment=assessment,
             wins=wins,
             challenges=challenges,
+            lessons_learned=lessons_learned,
+            next_period_focus=next_period_focus,
             goal_updates=goal_updates
         )
 
@@ -108,6 +113,8 @@ class ReviewService:
         assessment: str, 
         wins: List[str] = None, 
         challenges: List[str] = None, 
+        lessons_learned: str = None,
+        next_period_focus: List[str] = None,
         goal_updates: List[Dict] = None
     ) -> str:
         """
@@ -117,9 +124,11 @@ class ReviewService:
             review_type: Type of review (weekly, monthly, quarterly, yearly)
             period: Period identifier
             summary: Review summary text
-            assessment: Period assessment (Harika, Normal, Karışık, Zorlu)
+            assessment: Period assessment (Başarılı, Normal, Karışık, Zorlayıcı)
             wins: List of wins/achievements
             challenges: List of challenges faced
+            lessons_learned: Key takeaways
+            next_period_focus: Focus items for the next period
             goal_updates: List of goal update dictionaries
             
         Returns:
@@ -131,7 +140,9 @@ class ReviewService:
             summary=summary,
             assessment=assessment,
             wins=wins,
-            challenges=challenges
+            challenges=challenges,
+            lessons_learned=lessons_learned,
+            next_period_focus=next_period_focus
         )
 
         if review_id:

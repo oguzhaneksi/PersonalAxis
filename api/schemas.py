@@ -59,6 +59,7 @@ class GoalUpdate(BaseModel):
 class SaveReviewRequest(BaseModel):
     review_type: ReviewType
     date: dt_date = Field(..., description="Review date YYYY-MM-DD")
+    period_assessment: PeriodAssessment = Field(..., description="Overall assessment of the period")
     review_summary: str = Field(..., min_length=50)
     wins: List[str] = Field(..., min_length=1, max_length=50)
     challenges: List[str] = Field(..., min_length=1, max_length=50)

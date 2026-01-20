@@ -20,12 +20,6 @@ async def save_review(review_type: str, request: SaveReviewRequest):
     target_dt = datetime.datetime.combine(request.date, datetime.time.min)
     period = review_service.calculate_period(review_type=review_type, target_date=target_dt)
     
-    full_summary = request.review_summary
-    full_summary += f"\n\n### Lessons Learned\n{request.lessons_learned}"
-    
-    if request.next_period_focus:
-        full_summary += "\n\n### Next Period Focus\n" + "\n".join([f"- {item}" for item in request.next_period_focus])
-
     # Convert goal updates to dicts for the generator
     goal_updates_data = []
     if request.goal_updates:
@@ -39,10 +33,12 @@ async def save_review(review_type: str, request: SaveReviewRequest):
     page_id = review_service.save_review_from_structured_data(
         review_type=request.review_type,
         period=period,
-        summary=full_summary,
-        assessment="Karışık", # Default as it's not in SaveReviewRequest schema
+        summary=request.review_summary,
+        assessment=request.period_assessment.value,
         wins=request.wins,
         challenges=request.challenges,
+        lessons_learned=request.lessons_learned,
+        next_period_focus=request.next_period_focus,
         goal_updates=goal_updates_data
     )
     

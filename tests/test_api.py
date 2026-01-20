@@ -79,6 +79,7 @@ def test_save_review(mock_service_cls):
         "review_type": "weekly",
         "date": "2026-01-18",
         "review_summary": "Good week " * 5, # >50 chars
+        "period_assessment": "Başarılı",
         "wins": ["Win 1"],
         "challenges": ["Chal 1"],
         "lessons_learned": "Learn more.",
@@ -367,6 +368,7 @@ def test_review_type_mismatch():
     payload = {
         "review_type": "weekly",
         "date": "2026-01-18",
+        "period_assessment": "Başarılı",
         "review_summary": "Test summary that is long enough to pass validation checks here",
         "wins": ["Win"],
         "challenges": ["Challenge"],
@@ -448,6 +450,7 @@ def test_reviews_endpoint_error_handling(mock_service_cls):
     payload = {
         "review_type": "weekly",
         "date": "2026-01-18",
+        "period_assessment": "Başarılı",
         "review_summary": "Test summary with enough characters to pass min length validation",
         "wins": ["Win"],
         "challenges": ["Challenge"],
