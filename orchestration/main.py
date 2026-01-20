@@ -8,6 +8,10 @@ import datetime
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from orchestration.context_generator import ContextGenerator
+from orchestration.journal_service import JournalService
+from orchestration.review_service import ReviewService
+from orchestration.habit_service import HabitService
+from orchestration.goal_service import GoalService
 
 def notify(title, message):
     """Send a macOS notification."""
@@ -50,8 +54,8 @@ def save_journal(title, date_str):
         return
 
     try:
-        generator = ContextGenerator()
-        if generator.save_journal(title, raw_content, date_str):
+        journal_service = JournalService()
+        if journal_service.save_journal(title, raw_content, date_str):
             click.echo("Successfully saved journal and tasks!")
         else:
             click.echo("Failed to save journal.")
@@ -111,9 +115,8 @@ def quick_journal(content):
 def goal_status():
     """Summary of active goals' progress."""
     try:
-        from orchestration.notion_service import NotionClient
-        client = NotionClient()
-        goals = client.fetch_active_goals()
+        goal_service = GoalService()
+        goals = goal_service.get_active_goals()
         
         click.echo("\n--- Aktif Hedefler ---")
         if not goals:
@@ -133,9 +136,8 @@ def goal_status():
 def habits():
     """Show today's habit checklist (Sync from Notion)."""
     try:
-        from orchestration.notion_service import NotionClient
-        client = NotionClient()
-        habits = client.fetch_active_habits()
+        habit_service = HabitService()
+        habits = habit_service.get_todays_habits()
         
         click.echo("\n--- Bugünkü Alışkanlıklar ---")
         if not habits:
@@ -162,8 +164,8 @@ def save_review(review_type, period):
         return
 
     try:
-        generator = ContextGenerator()
-        if generator.save_review(review_type, period, raw_content):
+        review_service = ReviewService()
+        if review_service.save_review(review_type, period, raw_content):
             click.echo("Successfully saved review and updated goals!")
         else:
             click.echo("Failed to save review.")

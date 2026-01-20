@@ -47,7 +47,7 @@
 - **DONE** 6.1.4: Setup main FastAPI app with standardized error handling
 - **DONE** 6.1.5: Implement Context Router (/api/context/*)
 - **DONE** 6.1.6: Implement Journal Router (/api/journal/*)
-- **IN REVIEW** 6.1.7: Implement Goals & Habits Routers (/api/goals/*, /api/habits/*)
+- **DONE** 6.1.7: Implement Goals & Habits Routers (/api/goals/*, /api/habits/*)
 - **IN REVIEW** 6.1.8: Implement Reviews Router (/api/reviews/*)
 - **IN REVIEW** 6.1.9: Write and verify unit tests for all endpoints (`tests/test_api.py`)
 

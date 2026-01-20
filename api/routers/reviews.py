@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from api.schemas import SaveReviewRequest
-from orchestration.context_generator import ContextGenerator
+from orchestration.review_service import ReviewService
 from api.error_handlers import handle_notion_errors
 import datetime
 
@@ -14,11 +14,11 @@ async def save_review(review_type: str, request: SaveReviewRequest):
     if review_type != request.review_type:
         raise HTTPException(status_code=400, detail="Review type in URL must match body")
 
-    generator = ContextGenerator()
+    review_service = ReviewService()
     
     # Calculate period for the given date
     target_dt = datetime.datetime.combine(request.date, datetime.time.min)
-    period = generator.get_period(review_type=review_type, target_date=target_dt)
+    period = review_service.calculate_period(review_type=review_type, target_date=target_dt)
     
     full_summary = request.review_summary
     full_summary += f"\n\n### Lessons Learned\n{request.lessons_learned}"
@@ -35,8 +35,8 @@ async def save_review(review_type: str, request: SaveReviewRequest):
                 "new_status": update.new_status.value
             })
 
-    # Save review session via orchestrator
-    page_id = generator.save_review_from_structured_data(
+    # Save review session via review service
+    page_id = review_service.save_review_from_structured_data(
         review_type=request.review_type,
         period=period,
         summary=full_summary,

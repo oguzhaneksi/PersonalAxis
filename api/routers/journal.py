@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from orchestration.context_generator import ContextGenerator
+from orchestration.journal_service import JournalService
 from api.schemas import QuickJournalRequest, FullJournalRequest
 from datetime import datetime
 from api.error_handlers import handle_notion_errors
@@ -10,11 +10,11 @@ router = APIRouter(prefix="/api/journal", tags=["Journal"])
 @handle_notion_errors
 async def quick_journal(request: QuickJournalRequest):
     """Create a quick journal entry."""
-    generator = ContextGenerator()
+    journal_service = JournalService()
     today = datetime.now().strftime("%Y-%m-%d")
     title = request.title or f"Quick Entry {datetime.now().strftime('%H:%M')}"
     
-    page_id = generator.save_journal_from_structured_data(
+    page_id = journal_service.save_journal_from_structured_data(
         date_str=today,
         title=title,
         content=request.content,
@@ -32,7 +32,7 @@ async def quick_journal(request: QuickJournalRequest):
 @handle_notion_errors
 async def save_journal(request: FullJournalRequest):
     """Save a full journal entry with AI output."""
-    generator = ContextGenerator()
+    journal_service = JournalService()
     date_str = request.date.strftime("%Y-%m-%d") if request.date else datetime.now().strftime("%Y-%m-%d")
     
     action_items_data = []
@@ -44,7 +44,7 @@ async def save_journal(request: FullJournalRequest):
                 item_dict["date"] = item_dict["date"].strftime("%Y-%m-%d")
             action_items_data.append(item_dict)
 
-    page_id = generator.save_journal_from_structured_data(
+    page_id = journal_service.save_journal_from_structured_data(
         title=request.title,
         content=request.raw_content,
         date_str=date_str,

@@ -34,20 +34,20 @@ def test_get_daily_context(mock_gen_cls):
     assert response.status_code == 200
     assert response.json()["success"] is True
 
-@patch("api.routers.journal.ContextGenerator")
-def test_create_quick_journal(mock_gen_cls):
-    mock_gen = mock_gen_cls.return_value
-    mock_gen.save_journal_from_structured_data.return_value = "new-page-id"
+@patch("api.routers.journal.JournalService")
+def test_create_quick_journal(mock_service_cls):
+    mock_service = mock_service_cls.return_value
+    mock_service.save_journal_from_structured_data.return_value = "new-page-id"
     
     payload = {"content": "Test journal"}
     response = client.post("/api/journal/quick", json=payload, headers=get_headers())
     assert response.status_code == 200
     assert response.json()["success"] is True
 
-@patch("api.routers.journal.ContextGenerator")
-def test_save_full_journal(mock_gen_cls):
-    mock_gen = mock_gen_cls.return_value
-    mock_gen.save_journal_from_structured_data.return_value = "page-id"
+@patch("api.routers.journal.JournalService")
+def test_save_full_journal(mock_service_cls):
+    mock_service = mock_service_cls.return_value
+    mock_service.save_journal_from_structured_data.return_value = "page-id"
     
     payload = {
         "title": "My Day",
@@ -69,11 +69,11 @@ def test_save_full_journal(mock_gen_cls):
     assert response.status_code == 200
     assert response.json()["data"]["tasks_created"] == ["Buy milk"]
 
-@patch("api.routers.reviews.ContextGenerator")
-def test_save_review(mock_gen_cls):
-    mock_gen = mock_gen_cls.return_value
-    mock_gen.save_review_from_structured_data.return_value = "review-id"
-    mock_gen.get_period.return_value = "2026-W01"
+@patch("api.routers.reviews.ReviewService")
+def test_save_review(mock_service_cls):
+    mock_service = mock_service_cls.return_value
+    mock_service.save_review_from_structured_data.return_value = "review-id"
+    mock_service.calculate_period.return_value = "2026-W01"
     
     payload = {
         "review_type": "weekly",
@@ -100,27 +100,38 @@ def test_save_review(mock_gen_cls):
     assert response.status_code == 200
     assert response.json()["data"]["updated_goals"] == ["Run 5k"]
 
-@patch("api.routers.goals.NotionClient")
-def test_get_goals_status(mock_client_cls):
-    mock_client = mock_client_cls.return_value
-    mock_client.fetch_active_goals.return_value = [{"id": "1", "name": "Test Goal"}]
+@patch("api.routers.goals.GoalService")
+def test_get_goals_status(mock_service_cls):
+    mock_service = mock_service_cls.return_value
+    mock_service.get_active_goals.return_value = [{"id": "1", "name": "Test Goal"}]
     
     response = client.get("/api/goals/status", headers=get_headers())
     assert response.status_code == 200
     assert response.json()["success"] is True
 
-@patch("api.routers.habits.NotionClient")
-def test_get_todays_habits(mock_client_cls):
-    mock_client = mock_client_cls.return_value
-    mock_client.get_journal_entry.return_value = {
-        "properties": {
-            "Exercise": {"type": "checkbox", "checkbox": True}
+@patch("api.routers.habits.HabitService")
+def test_get_todays_habits(mock_habit_cls):
+    mock_service = mock_habit_cls.return_value
+    # Updated to mock fetching active habits with properties structure
+    mock_service.get_todays_habits.return_value = [
+        {
+            "properties": {
+                "Ad": {"title": [{"plain_text": "Exercise"}]},
+                "Frekans": {"select": {"name": "Daily"}},
+                "Son Tamamlama": {"date": {"start": "2026-01-19"}}
+            }
         }
-    }
+    ]
     
     response = client.get("/api/habits/", headers=get_headers())
     assert response.status_code == 200
-    assert response.json()["data"]["habits"]["Exercise"] is True
+    
+    data = response.json()["data"]["habits"]
+    assert isinstance(data, list)
+    assert len(data) == 1
+    assert data[0]["name"] == "Exercise"
+    assert data[0]["frequency"] == "Daily"
+    assert data[0]["last_completed"] == "2026-01-19"
 
 
 # ============================================================================
@@ -219,11 +230,11 @@ def test_notion_timeout_error(mock_gen_cls):
     assert data["success"] is False
     assert data["error"]["code"] == "NOTION_TIMEOUT"
 
-@patch("api.routers.journal.ContextGenerator")
-def test_notion_generic_api_error(mock_gen_cls):
+@patch("api.routers.journal.JournalService")
+def test_notion_generic_api_error(mock_service_cls):
     """Test NOTION_API_ERROR for generic Notion errors."""
-    mock_gen = mock_gen_cls.return_value
-    mock_gen.save_journal_from_structured_data.side_effect = create_mock_api_error("internal_server_error", 500)
+    mock_service = mock_service_cls.return_value
+    mock_service.save_journal_from_structured_data.side_effect = create_mock_api_error("internal_server_error", 500)
     
     payload = {"content": "Test"}
     response = client.post("/api/journal/quick", json=payload, headers=get_headers())
@@ -407,32 +418,32 @@ def test_error_contains_turkish_user_message():
 # ENDPOINT-SPECIFIC ERROR TESTS
 # ============================================================================
 
-@patch("api.routers.goals.NotionClient")
-def test_goals_endpoint_notion_error_handling(mock_client_cls):
+@patch("api.routers.goals.GoalService")
+def test_goals_endpoint_notion_error_handling(mock_service_cls):
     """Test that goals endpoint properly handles Notion errors."""
-    mock_client = mock_client_cls.return_value
-    mock_client.fetch_active_goals.side_effect = create_mock_api_error("rate_limited", 429)
+    mock_service = mock_service_cls.return_value
+    mock_service.get_active_goals.side_effect = create_mock_api_error("rate_limited", 429)
     
     response = client.get("/api/goals/status", headers=get_headers())
     assert response.status_code == 429
     assert response.json()["error"]["code"] == "NOTION_RATE_LIMIT"
 
-@patch("api.routers.habits.NotionClient")
-def test_habits_endpoint_timeout_handling(mock_client_cls):
+@patch("api.routers.habits.HabitService")
+def test_habits_endpoint_timeout_handling(mock_service_cls):
     """Test that habits endpoint handles timeouts."""
-    mock_client = mock_client_cls.return_value
-    mock_client.get_journal_entry.side_effect = requests.exceptions.Timeout()
+    mock_service = mock_service_cls.return_value
+    mock_service.get_todays_habits.side_effect = requests.exceptions.Timeout()
     
     response = client.get("/api/habits/", headers=get_headers())
     assert response.status_code == 504
     assert response.json()["error"]["code"] == "NOTION_TIMEOUT"
 
-@patch("api.routers.reviews.ContextGenerator")
-def test_reviews_endpoint_error_handling(mock_gen_cls):
+@patch("api.routers.reviews.ReviewService")
+def test_reviews_endpoint_error_handling(mock_service_cls):
     """Test that reviews endpoint handles Notion errors during save."""
-    mock_gen = mock_gen_cls.return_value
-    mock_gen.get_period.return_value = "2026-W01"
-    mock_gen.save_review_from_structured_data.side_effect = create_mock_api_error("unauthorized", 401)
+    mock_service = mock_service_cls.return_value
+    mock_service.calculate_period.return_value = "2026-W01"
+    mock_service.save_review_from_structured_data.side_effect = create_mock_api_error("unauthorized", 401)
     
     payload = {
         "review_type": "weekly",

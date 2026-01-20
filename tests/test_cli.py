@@ -66,9 +66,9 @@ def test_quick_journal_cli(runner, mocker):
     assert "With multiple lines." in kwargs["content"]
 
 def test_goal_status_cli(runner, mocker):
-    mock_notion_class = mocker.patch("orchestration.notion_service.NotionClient")
-    mock_notion = mock_notion_class.return_value
-    mock_notion.fetch_active_goals.return_value = [
+    mock_service_cls = mocker.patch("orchestration.main.GoalService")
+    mock_service = mock_service_cls.return_value
+    mock_service.get_active_goals.return_value = [
         {
             "properties": {
                 "Ad": {"title": [{"plain_text": "Goal 1"}]},
