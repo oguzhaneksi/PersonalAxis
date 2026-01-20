@@ -5,6 +5,7 @@ from fastapi.exceptions import RequestValidationError
 from api.routers import context, journal, goals, habits, reviews
 from api.auth import verify_api_key
 from api.exceptions import PersonalAxisException
+from api.auth import API_KEY_NAME
 import datetime
 
 app = FastAPI(
@@ -17,8 +18,10 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", API_KEY_NAME],
+    allow_credentials=True,
+    max_age=600
 )
 
 # Exception Handlers
