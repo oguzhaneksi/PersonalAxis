@@ -4,6 +4,7 @@ import json
 from typing import Optional, List, Dict
 from .notion_service import NotionClient
 from .context_builder import ContextBuilder
+from utils.utils import parse_ai_json
 
 class ContextGenerator:
     """
@@ -16,12 +17,13 @@ class ContextGenerator:
         self.output_dir = "output"
         os.makedirs(self.output_dir, exist_ok=True)
 
-    def get_period(self, review_type: str, period: Optional[str] = None) -> str:
+    def get_period(self, review_type: str, period: Optional[str] = None, target_date: Optional[datetime.datetime] = None) -> str:
         """
-        Calculates the period string based on review_type and optional period hint.
+        Calculates the period string based on review_type and optional period hint or target_date.
         Supports 'last' for previous period and None for current period.
         """
-        target_date = datetime.datetime.now()
+        if not target_date:
+            target_date = datetime.datetime.now()
         
         if period == "last":
             if review_type == "weekly":
@@ -132,19 +134,11 @@ class ContextGenerator:
 
     def save_journal(self, title: str, raw_input: str, date_str: Optional[str] = None) -> bool:
         """
-        Parses JSON-formatted AI summary and saves to Notion.
+        Parses JSON-formatted AI summary and saves to Notion via structural helper.
         """
 
         try:
-            # Attempt to parse as JSON
-            # Note: AI might wrap JSON in markdown blocks, so we should try to extract it
-            json_str = raw_input.strip()
-            if json_str.startswith("```json"):
-                json_str = json_str.replace("```json", "").replace("```", "").strip()
-            elif json_str.startswith("```"):
-                 json_str = json_str.replace("```", "").strip()
-            
-            data = json.loads(json_str)
+            data = parse_ai_json(raw_input)
             
             raw_content = data.get("raw_content", "")
             emotions = data.get("emotions_detected", [])
@@ -155,14 +149,30 @@ class ContextGenerator:
             print(f"✗ Error: Failed to parse AI output as JSON. Please ensure Gemini provided the correct format.\nDetails: {e}")
             return False
 
-        # Save to Notion
+        # Save using structural helper
+        entry_id = self.save_journal_from_structured_data(
+            title=title,
+            content=raw_content,
+            date_str=date_str,
+            emotions=emotions,
+            insights=insights,
+            action_items=action_items
+        )
+
+        return bool(entry_id)
+
+    def save_journal_from_structured_data(self, title: str, content: str, date_str: Optional[str] = None, emotions: List[str] = None, insights: str = None, action_items: List[Dict] = None) -> str:
+        """
+        Saves a journal entry and its action items to Notion.
+        Returns the page ID.
+        """
         if not date_str:
             date_str = datetime.datetime.now().strftime("%Y-%m-%d")
-            
+
         entry_id = self.notion.create_journal_entry(
             date_str=date_str,
             title=title,
-            content=raw_content,
+            content=content,
             emotions=emotions,
             insights=insights
         )
@@ -171,7 +181,7 @@ class ContextGenerator:
             print(f"✓ Journal entry saved to Notion (ID: {entry_id})")
             
             # Create tasks from action items
-            for item in action_items:
+            for item in (action_items or []):
                 if isinstance(item, dict):
                     task_name = item.get("title", "Untitled Task")
                     priority = item.get("priority", "P3")
@@ -189,8 +199,7 @@ class ContextGenerator:
                     # Fallback for unexpected formats
                     self.notion.create_task(name=str(item), priority="P3")
                     print(f"  + Task created: {item} (P3 - Default)")
-            return True
-        return False
+        return entry_id
 
     def _enrich_journals_with_content(self, journals: List[Dict]) -> List[Dict]:
         """
@@ -206,17 +215,11 @@ class ContextGenerator:
 
     def save_review(self, review_type: str, period: Optional[str] = None, raw_input: str = "") -> bool:
         """
-        Parses JSON-formatted AI review summary and saves to Notion.
+        Parses JSON-formatted AI review summary and saves to Notion via structural helper.
         """
         period = self.get_period(review_type, period)
         try:
-            json_str = raw_input.strip()
-            if json_str.startswith("```json"):
-                json_str = json_str.replace("```json", "").replace("```", "").strip()
-            elif json_str.startswith("```"):
-                 json_str = json_str.replace("```", "").strip()
-            
-            data = json.loads(json_str)
+            data = parse_ai_json(raw_input)
             
             summary = data.get("review_summary", "")
             assessment = data.get("period_assessment", "Karışık")
@@ -228,7 +231,24 @@ class ContextGenerator:
             print(f"✗ Error: Failed to parse AI review output as JSON.\nDetails: {e}")
             return False
 
-        # Save Review Session
+        # Save using structural helper
+        review_id = self.save_review_from_structured_data(
+            review_type=review_type,
+            period=period,
+            summary=summary,
+            assessment=assessment,
+            wins=wins,
+            challenges=challenges,
+            goal_updates=goal_updates
+        )
+
+        return bool(review_id)
+
+    def save_review_from_structured_data(self, review_type: str, period: str, summary: str, assessment: str, wins: List[str] = None, challenges: List[str] = None, goal_updates: List[Dict] = None) -> str:
+        """
+        Saves a review session and updates associated goals.
+        Returns the page ID.
+        """
         review_id = self.notion.create_review_session(
             review_type=review_type,
             period=period,
@@ -242,7 +262,7 @@ class ContextGenerator:
             print(f"✓ Review session saved to Notion (ID: {review_id})")
             
             # Update goals
-            for update in goal_updates:
+            for update in (goal_updates or []):
                 goal_name = update.get("goal_name")
                 new_status = update.get("new_status")
                 
@@ -256,5 +276,4 @@ class ContextGenerator:
                             print(f"  - Failed to update goal: {goal_name}")
                     else:
                         print(f"  - Goal not found: {goal_name}")
-            return True
-        return False
+        return review_id

@@ -1,7 +1,8 @@
 from fastapi import APIRouter, HTTPException
 from api.schemas import SaveReviewRequest
-from orchestration.notion_service import NotionClient
+from orchestration.context_generator import ContextGenerator
 from api.error_handlers import handle_notion_errors
+import datetime
 
 router = APIRouter(prefix="/api/reviews", tags=["Reviews"])
 
@@ -13,10 +14,11 @@ async def save_review(review_type: str, request: SaveReviewRequest):
     if review_type != request.review_type:
         raise HTTPException(status_code=400, detail="Review type in URL must match body")
 
-    client = NotionClient()
+    generator = ContextGenerator()
     
-    # We need to adapt the rich request object to the simpler NotionClient signature,
-    # or extend NotionClient. For now, we'll format the summary to include the extra fields.
+    # Calculate period for the given date
+    target_dt = datetime.datetime.combine(request.date, datetime.time.min)
+    period = generator.get_period(review_type=review_type, target_date=target_dt)
     
     full_summary = request.review_summary
     full_summary += f"\n\n### Lessons Learned\n{request.lessons_learned}"
@@ -24,36 +26,30 @@ async def save_review(review_type: str, request: SaveReviewRequest):
     if request.next_period_focus:
         full_summary += "\n\n### Next Period Focus\n" + "\n".join([f"- {item}" for item in request.next_period_focus])
 
-    # Save main review
-    page_id = client.save_review_session(
-        review_type=request.review_type,
-        date_str=request.date.strftime("%Y-%m-%d"),
-        content=full_summary,
-        # Rating is not in the new schema, so we default or omit. 
-        # Wait, schematic doesn't have rating. We should pass None.
-        rating=None, 
-        # emotions not in schema anymore? Wait, user provided schemas doesn't have emotions in SaveReviewRequest?
-        # Checking user provided schema... "SaveReviewRequest" has no emotions.
-        emotions=None
-    )
-    
-    # Process Goal Updates
-    updated_goals = []
+    # Convert goal updates to dicts for the generator
+    goal_updates_data = []
     if request.goal_updates:
         for update in request.goal_updates:
-            goal_id = client.find_goal_by_name(update.goal_name)
-            if goal_id:
-                notion_status = update.new_status.value
-                
-                if client.update_goal_progress(goal_id, status=notion_status):
-                    updated_goals.append(update.goal_name)
-            else:
-                print(f"Goal not found: {update.goal_name}")
+            goal_updates_data.append({
+                "goal_name": update.goal_name,
+                "new_status": update.new_status.value
+            })
 
+    # Save review session via orchestrator
+    page_id = generator.save_review_from_structured_data(
+        review_type=request.review_type,
+        period=period,
+        summary=full_summary,
+        assessment="Karışık", # Default as it's not in SaveReviewRequest schema
+        wins=request.wins,
+        challenges=request.challenges,
+        goal_updates=goal_updates_data
+    )
+    
     return {
         "success": bool(page_id),
         "data": {
             "page_id": page_id,
-            "updated_goals": updated_goals
+            "updated_goals": [u.goal_name for u in request.goal_updates] if page_id else []
         }
     }

@@ -34,21 +34,20 @@ def test_get_daily_context(mock_gen_cls):
     assert response.status_code == 200
     assert response.json()["success"] is True
 
-@patch("api.routers.journal.NotionClient")
-def test_create_quick_journal(mock_client_cls):
-    mock_client = mock_client_cls.return_value
-    mock_client.create_journal_entry.return_value = "new-page-id"
+@patch("api.routers.journal.ContextGenerator")
+def test_create_quick_journal(mock_gen_cls):
+    mock_gen = mock_gen_cls.return_value
+    mock_gen.save_journal_from_structured_data.return_value = "new-page-id"
     
     payload = {"content": "Test journal"}
     response = client.post("/api/journal/quick", json=payload, headers=get_headers())
     assert response.status_code == 200
     assert response.json()["success"] is True
 
-@patch("api.routers.journal.NotionClient")
-def test_save_full_journal(mock_client_cls):
-    mock_client = mock_client_cls.return_value
-    mock_client.create_journal_entry.return_value = "page-id"
-    mock_client.create_task.return_value = "task-id"
+@patch("api.routers.journal.ContextGenerator")
+def test_save_full_journal(mock_gen_cls):
+    mock_gen = mock_gen_cls.return_value
+    mock_gen.save_journal_from_structured_data.return_value = "page-id"
     
     payload = {
         "title": "My Day",
@@ -70,12 +69,11 @@ def test_save_full_journal(mock_client_cls):
     assert response.status_code == 200
     assert response.json()["data"]["tasks_created"] == ["Buy milk"]
 
-@patch("api.routers.reviews.NotionClient")
-def test_save_review(mock_client_cls):
-    mock_client = mock_client_cls.return_value
-    mock_client.save_review_session.return_value = "review-id"
-    mock_client.find_goal_by_name.return_value = "goal-id"
-    mock_client.update_goal_progress.return_value = True
+@patch("api.routers.reviews.ContextGenerator")
+def test_save_review(mock_gen_cls):
+    mock_gen = mock_gen_cls.return_value
+    mock_gen.save_review_from_structured_data.return_value = "review-id"
+    mock_gen.get_period.return_value = "2026-W01"
     
     payload = {
         "review_type": "weekly",
@@ -221,11 +219,11 @@ def test_notion_timeout_error(mock_gen_cls):
     assert data["success"] is False
     assert data["error"]["code"] == "NOTION_TIMEOUT"
 
-@patch("api.routers.journal.NotionClient")
-def test_notion_generic_api_error(mock_client_cls):
+@patch("api.routers.journal.ContextGenerator")
+def test_notion_generic_api_error(mock_gen_cls):
     """Test NOTION_API_ERROR for generic Notion errors."""
-    mock_client = mock_client_cls.return_value
-    mock_client.create_journal_entry.side_effect = create_mock_api_error("internal_server_error", 500)
+    mock_gen = mock_gen_cls.return_value
+    mock_gen.save_journal_from_structured_data.side_effect = create_mock_api_error("internal_server_error", 500)
     
     payload = {"content": "Test"}
     response = client.post("/api/journal/quick", json=payload, headers=get_headers())
@@ -429,11 +427,12 @@ def test_habits_endpoint_timeout_handling(mock_client_cls):
     assert response.status_code == 504
     assert response.json()["error"]["code"] == "NOTION_TIMEOUT"
 
-@patch("api.routers.reviews.NotionClient")
-def test_reviews_endpoint_error_handling(mock_client_cls):
+@patch("api.routers.reviews.ContextGenerator")
+def test_reviews_endpoint_error_handling(mock_gen_cls):
     """Test that reviews endpoint handles Notion errors during save."""
-    mock_client = mock_client_cls.return_value
-    mock_client.save_review_session.side_effect = create_mock_api_error("unauthorized", 401)
+    mock_gen = mock_gen_cls.return_value
+    mock_gen.get_period.return_value = "2026-W01"
+    mock_gen.save_review_from_structured_data.side_effect = create_mock_api_error("unauthorized", 401)
     
     payload = {
         "review_type": "weekly",
