@@ -204,12 +204,19 @@ Screens.saveJournal = {
     if (titleInput) {
         titleInput.value = `Journal ${date}`;
     }
+    
+    // Set default date
+    const dateInput = document.getElementById('full-journal-date');
+    if (dateInput) {
+        dateInput.value = date;
+    }
   },
   
   async submit(event) {
     event.preventDefault();
     
     const title = document.getElementById('full-journal-title').value;
+    const dateVal = document.getElementById('full-journal-date').value;
     const jsonStr = document.getElementById('full-journal-json').value;
     
     // 1. Validate JSON
@@ -227,6 +234,7 @@ Screens.saveJournal = {
     // Assuming backend takes the direct AI output + title.
     const payload = {
         title: title,
+        date: dateVal,
         ...journalData
     };
     
