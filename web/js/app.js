@@ -133,44 +133,79 @@ Screens.reviewContext = {
   
   async show() {
     Utils.render(Utils.getTemplate('review-context-screen'));
-    this.initTypeSelector();
+    
+    // Period input field
+    const periodInput = document.getElementById('review-period-input');
+    const periodHint = document.getElementById('review-period-hint');
+    const fetchBtn = document.getElementById('fetch-review-btn');
+
+    this.initTypeSelector(periodInput, periodHint);
+    
+    if (fetchBtn) {
+        fetchBtn.addEventListener('click', () => {
+            if (!this.type) {
+                Utils.showToast('Please select a review type', 'error');
+                return;
+            }
+            this.load();
+        });
+    }
   },
   
-  initTypeSelector() {
+  initTypeSelector(periodInput, periodHint) {
     const selector = document.getElementById('review-type-selector');
     if (!selector) return;
 
     selector.addEventListener('click', (e) => {
         if (e.target.classList.contains('type-btn')) {
+            const type = e.target.dataset.type;
+            this.type = type;
+            
             // Remove active class from all
             selector.querySelectorAll('.type-btn').forEach(btn => btn.classList.remove('active'));
             // Add to clicked
             e.target.classList.add('active');
             
-            const type = e.target.dataset.type;
-            this.load(type);
+            // Update placeholder and hint based on type
+            if (periodInput && periodHint) {
+              const formats = {
+                'weekly': 'YYYY-W01',
+                'monthly': 'YYYY-MM',
+                'quarterly': 'YYYY-Q1',
+                'yearly': 'YYYY'
+              };
+              periodInput.placeholder = `e.g., ${formats[type]}`;
+              periodHint.textContent = `Current: ${Utils.getCurrentPeriod(type)}`;
+              
+              // Always update to current period when switching types to prevent invalid format requests
+              periodInput.value = Utils.getCurrentPeriod(type);
+            }
         }
     });
   },
   
-  async load(type) {
-    this.type = type;
+  async load() {
     const container = document.getElementById('review-content-container');
     const contentEl = document.getElementById('review-content');
     const labelEl = document.getElementById('review-type-label');
     const dateEl = document.getElementById('review-date');
+    const periodInput = document.getElementById('review-period-input');
+    const period = periodInput ? periodInput.value : null;
     
     container.style.display = 'block';
     contentEl.textContent = 'Loading...';
-    labelEl.textContent = type.charAt(0).toUpperCase() + type.slice(1) + ' Review';
-    dateEl.textContent = Utils.formatDate();
+    labelEl.textContent = this.type.charAt(0).toUpperCase() + this.type.slice(1) + ' Review';
+    dateEl.textContent = period || Utils.formatDate();
     
     Utils.setLoading(true);
     
     try {
-      const response = await api.getReviewContext(type);
+      const response = await api.getReviewContext(this.type, period);
       this.content = response.data?.context || 'No context available.';
       contentEl.textContent = this.content;
+      
+      // Focus the content area
+      container.scrollIntoView({ behavior: 'smooth' });
     } catch (error) {
       handleError(error);
       contentEl.textContent = 'Failed to load review context.';

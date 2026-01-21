@@ -109,12 +109,32 @@
                 <button class="back-button" onclick="router.back()">←</button>
                 <h1 class="header-title">Review Context</h1>
             </header>
+
+            <div class="filter-bar" style="padding: 1rem 1rem 0; text-align: center;">
+                <div class="form-group" style="margin-bottom: 0.5rem;">
+                    <label class="form-label">Period</label>
+                    <input 
+                        type="text" 
+                        id="review-period-input" 
+                        placeholder="e.g., 2026-W01" 
+                        class="form-input"
+                        style="max-width: 300px; text-align: center;"
+                    >
+                    <span class="form-hint" id="review-period-hint">Format depends on review type</span>
+                </div>
+            </div>
             
             <div class="type-selector" id="review-type-selector">
                 <button class="type-btn" data-type="weekly">Weekly</button>
                 <button class="type-btn" data-type="monthly">Monthly</button>
                 <button class="type-btn" data-type="quarterly">Quarterly</button>
                 <button class="type-btn" data-type="yearly">Yearly</button>
+            </div>
+
+            <div class="action-row" style="margin: 0 auto 1.5rem; width: 100%; max-width: 300px;">
+                <button class="btn btn-primary btn-full" id="fetch-review-btn">
+                    🔄 Fetch Context
+                </button>
             </div>
             
             <div class="content-container" id="review-content-container" style="display:none;">

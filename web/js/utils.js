@@ -121,6 +121,40 @@ const Utils = {
   },
 
   /**
+   * Get current period string for a given type
+   */
+  getCurrentPeriod(type) {
+    const now = new Date();
+    const year = now.getFullYear();
+    
+    if (type === 'weekly') {
+      // ISO week calculation
+      const d = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+      const dayNum = d.getUTCDay() || 7;
+      d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+      const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+      const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+      return `${year}-W${weekNo.toString().padStart(2, '0')}`;
+    }
+    
+    if (type === 'monthly') {
+      const month = (now.getMonth() + 1).toString().padStart(2, '0');
+      return `${year}-${month}`;
+    }
+    
+    if (type === 'quarterly') {
+      const quarter = Math.floor(now.getMonth() / 3) + 1;
+      return `${year}-Q${quarter}`;
+    }
+    
+    if (type === 'yearly') {
+      return `${year}`;
+    }
+    
+    return year.toString();
+  },
+
+  /**
    * Debounce function
    */
   debounce(fn, delay) {
