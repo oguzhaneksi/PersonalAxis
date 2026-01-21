@@ -448,7 +448,7 @@ Screens.habits = {
 
 function initNetworkStatus() {
   const updateStatus = () => {
-    if (Screens.home && window.location.hash === '' || window.location.hash === '#/') {
+    if (Screens.home && (window.location.hash === '' || window.location.hash === '#/')) {
         Screens.home.checkConnection();
     }
     
