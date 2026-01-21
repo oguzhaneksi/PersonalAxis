@@ -5,16 +5,17 @@
 class APIClient {
   constructor() {
     this.baseURL = window.location.origin;
-    this.apiKey = localStorage.getItem('pa_api_key') || '';
+    // Store API key in memory only to avoid persisting sensitive data in localStorage,
+    // which is accessible to any script running in the page (including via XSS).
+    this.apiKey = '';
     this.apiKeyHeader = 'X-API-Key'; // Matches API_KEY_NAME in backend
   }
 
   /**
-   * Set API key and persist to localStorage
+   * Set API key (stored in memory only; not persisted to localStorage for security reasons)
    */
   setApiKey(key) {
     this.apiKey = key;
-    localStorage.setItem('pa_api_key', key);
   }
 
   /**
