@@ -58,12 +58,12 @@
 - **DONE** 6.2.4: Verify end-to-end connectivity from a mobile device
 
 ### 6.3: PWA Frontend (Minimal UI)
-- **IN REVIEW** 6.3.1: Create basic HTML structure and PWA manifest (`web/index.html`, `manifest.json`)
-- **IN REVIEW** 6.3.2: Implement mobile-first CSS (buttons, layout, status bar)
-- **IN REVIEW** 6.3.3: Build JavaScript API Client with standard response handling
-- **IN REVIEW** 6.3.4: Implement Daily Context & Review views (display & copy)
-- **IN REVIEW** 6.3.5: Implement Quick Journal form & success states
-- **IN REVIEW** 6.3.6: Implement Goals & Habits list views
+- **DONE** 6.3.1: Create basic HTML structure and PWA manifest (`web/index.html`, `manifest.json`)
+- **DONE** 6.3.2: Implement mobile-first CSS (buttons, layout, status bar)
+- **DONE** 6.3.3: Build JavaScript API Client with standard response handling
+- **DONE** 6.3.4: Implement Daily Context & Review views (display & copy)
+- **DONE** 6.3.5: Implement Quick Journal form & success states
+- **DONE** 6.3.6: Implement Goals & Habits list views
 
 ### 6.4: Service Worker & Polish
 - **TO DO** 6.4.1: Implement Service Worker for offline detection and caching
