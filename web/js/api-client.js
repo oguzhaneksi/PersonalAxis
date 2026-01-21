@@ -3,11 +3,11 @@
  * Handles all communication with the backend API
  */
 class APIClient {
-  constructor() {
+  constructor(initialApiKey = '') {
     this.baseURL = window.location.origin;
     // Store API key in memory only to avoid persisting sensitive data in localStorage,
     // which is accessible to any script running in the page (including via XSS).
-    this.apiKey = '';
+    this.apiKey = initialApiKey;
     this.apiKeyHeader = 'X-API-Key'; // Matches API_KEY_NAME in backend
   }
 
