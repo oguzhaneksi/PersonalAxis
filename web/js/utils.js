@@ -174,7 +174,8 @@ const Utils = {
         light: 10,
         medium: 20,
         heavy: 50,
-        error: [50, 50, 50]
+        error: [50, 50, 50],
+        success: [20, 30, 20]
       };
       navigator.vibrate(patterns[type] || patterns.light);
     }
