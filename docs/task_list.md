@@ -59,9 +59,9 @@
 
 ### 6.3: PWA Frontend (Minimal UI)
 - **IN REVIEW** 6.3.1: Create basic HTML structure and PWA manifest (`web/index.html`, `manifest.json`)
-- **TO DO** 6.3.2: Implement mobile-first CSS (buttons, layout, status bar)
-- **TO DO** 6.3.3: Build JavaScript API Client with standard response handling
-- **TO DO** 6.3.4: Implement Daily Context & Review views (display & copy)
+- **IN REVIEW** 6.3.2: Implement mobile-first CSS (buttons, layout, status bar)
+- **IN REVIEW** 6.3.3: Build JavaScript API Client with standard response handling
+- **IN REVIEW** 6.3.4: Implement Daily Context & Review views (display & copy)
 - **TO DO** 6.3.5: Implement Quick Journal form & success states
 - **TO DO** 6.3.6: Implement Goals & Habits list views
 
