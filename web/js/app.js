@@ -480,7 +480,7 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Check for API key
   if (!api.hasApiKey()) {
-    console.warn('API Key not found. Please set it via localStorage.setItem("pa_api_key", "your_key")');
+    console.warn('API Key not found. Please configure it using the application settings or your preferred secure configuration method.');
     Utils.showToast('API Key missing', 'error');
   }
 
