@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#1a1a2e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="PersonalAxis">
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/png" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/app.css">
+    
+    <title>PersonalAxis</title>
+</head>
+<body>
+    <div id="app">
+        <!-- Dynamic content rendered here -->
+    </div>
+    
+    <!-- ============================================ -->
+    <!-- Screen Templates -->
+    <!-- ============================================ -->
+    
+    <!-- Home Screen -->
+    <template id="home-screen">
+        <div class="screen home-screen">
+            <header class="header">
+                <h1 class="header-title">PersonalAxis</h1>
+                <button class="icon-button" onclick="Screens.home.showHelp()">?</button>
+            </header>
+            
+            <div class="action-grid">
+                <button class="action-card action-card-primary" onclick="router.navigate('/daily-context')">
+                    <span class="icon">🌅</span>
+                    <span class="label">Daily Context</span>
+                </button>
+                
+                <button class="action-card" onclick="router.navigate('/save-journal')">
+                    <span class="icon">💾</span>
+                    <span class="label">Save Journal</span>
+                </button>
+                
+                <button class="action-card" onclick="router.navigate('/review-context')">
+                    <span class="icon">🔄</span>
+                    <span class="label">Review Context</span>
+                </button>
+                
+                <button class="action-card" onclick="router.navigate('/goals')">
+                    <span class="icon">🎯</span>
+                    <span class="label">Goals</span>
+                </button>
+                
+                <button class="action-card" onclick="router.navigate('/habits')">
+                    <span class="icon">✓</span>
+                    <span class="label">Habits</span>
+                </button>
+            </div>
+            
+            <div class="status-bar">
+                <div class="status-indicator">
+                    <span class="status-dot" id="connection-dot"></span>
+                    <span id="connection-status">Checking...</span>
+                </div>
+                <button class="text-button" onclick="Screens.home.refresh()">Refresh</button>
+            </div>
+        </div>
+    </template>
+    
+    <!-- Daily Context Screen -->
+    <template id="daily-context-screen">
+        <div class="screen">
+            <header class="header">
+                <button class="back-button" onclick="router.back()">←</button>
+                <h1 class="header-title">Daily Context</h1>
+                <button class="icon-button" onclick="Screens.dailyContext.refresh()">⟳</button>
+            </header>
+            
+            <div class="meta-info">
+                <span class="date" id="context-date"></span>
+            </div>
+            
+            <div class="content-display" id="context-content">
+                <!-- Markdown content rendered here -->
+            </div>
+            
+            <div class="action-row">
+                <button class="btn btn-secondary" onclick="Screens.dailyContext.copy()">
+                    📋 Copy
+                </button>
+                <button class="btn btn-primary" onclick="Screens.dailyContext.share()">
+                    📤 Share
+                </button>
+            </div>
+        </div>
+    </template>
+    
+    <!-- Review Context Screen -->
+    <template id="review-context-screen">
+        <div class="screen">
+            <header class="header">
+                <button class="back-button" onclick="router.back()">←</button>
+                <h1 class="header-title">Review Context</h1>
+            </header>
+            
+            <div class="type-selector" id="review-type-selector">
+                <button class="type-btn" data-type="weekly">Weekly</button>
+                <button class="type-btn" data-type="monthly">Monthly</button>
+                <button class="type-btn" data-type="quarterly">Quarterly</button>
+                <button class="type-btn" data-type="yearly">Yearly</button>
+            </div>
+            
+            <div class="content-container" id="review-content-container" style="display:none;">
+                <div class="meta-info">
+                    <span class="type-label" id="review-type-label"></span>
+                    <span class="date" id="review-date"></span>
+                </div>
+                
+                <div class="content-display" id="review-content">
+                    <!-- Review context rendered here -->
+                </div>
+                
+                <div class="action-row">
+                    <button class="btn btn-secondary" onclick="Screens.reviewContext.copy()">
+                        📋 Copy
+                    </button>
+                    <button class="btn btn-primary" onclick="Screens.reviewContext.share()">
+                        📤 Share
+                    </button>
+                </div>
+            </div>
+        </div>
+    </template>
+    
+    <!-- Save Journal Screen -->
+    <template id="save-journal-screen">
+        <div class="screen">
+            <header class="header">
+                <button class="back-button" onclick="router.back()">←</button>
+                <h1 class="header-title">Save Journal</h1>
+            </header>
+            
+            <form class="form" id="save-journal-form" onsubmit="Screens.saveJournal.submit(event)">
+                <div class="form-group">
+                    <label class="form-label" for="full-journal-title">Title</label>
+                    <input 
+                        type="text" 
+                        id="full-journal-title" 
+                        class="form-input" 
+                        placeholder="Journal entry title"
+                        required
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="full-journal-json">
+                        JSON Output (paste from AI)
+                    </label>
+                    <textarea 
+                        id="full-journal-json" 
+                        class="form-textarea" 
+                        placeholder='{"raw_content": "...", "emotions_detected": [...], ...}'
+                        required
+                    ></textarea>
+                    <small class="form-hint">Paste the complete JSON output from your AI assistant</small>
+                </div>
+                
+                <button type="submit" class="btn btn-primary btn-full">
+                    💾 Save Journal Entry
+                </button>
+            </form>
+        </div>
+    </template>
+    
+    <!-- Save Review Screen -->
+    <template id="save-review-screen">
+        <div class="screen">
+            <header class="header">
+                <button class="back-button" onclick="router.back()">←</button>
+                <h1 class="header-title">Save Review</h1>
+            </header>
+            
+            <form class="form" id="save-review-form" onsubmit="Screens.saveReview.submit(event)">
+                <div class="form-group">
+                    <label class="form-label" for="review-type-select">Review Type</label>
+                    <select id="review-type-select" class="form-input" required>
+                        <option value="">Select type...</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                        <option value="quarterly">Quarterly</option>
+                        <option value="yearly">Yearly</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="review-period">Period (YYYY-MM-DD)</label>
+                    <input 
+                        type="date" 
+                        id="review-period" 
+                        class="form-input" 
+                        required
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="review-assessment">Assessment</label>
+                    <textarea 
+                        id="review-assessment" 
+                        class="form-textarea" 
+                        placeholder="What went well? What could be improved?"
+                        required
+                    ></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="review-insights">Key Insights</label>
+                    <textarea 
+                        id="review-insights" 
+                        class="form-textarea" 
+                        placeholder="What did you learn?"
+                        required
+                    ></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="review-adjustments">Adjustments Needed</label>
+                    <textarea 
+                        id="review-adjustments" 
+                        class="form-textarea" 
+                        placeholder="What will you change?"
+                        required
+                    ></textarea>
+                </div>
+                
+                <button type="submit" class="btn btn-primary btn-full">
+                    💾 Save Review
+                </button>
+            </form>
+        </div>
+    </template>
+    
+    <!-- Goals Screen -->
+    <template id="goals-screen">
+        <div class="screen">
+            <header class="header">
+                <button class="back-button" onclick="router.back()">←</button>
+                <h1 class="header-title">Goals</h1>
+                <button class="icon-button" onclick="Screens.goals.refresh()">⟳</button>
+            </header>
+            
+            <div class="list-container" id="goals-list">
+                <!-- Goals list rendered here -->
+            </div>
+        </div>
+    </template>
+    
+    <!-- Habits Screen -->
+    <template id="habits-screen">
+        <div class="screen">
+            <header class="header">
+                <button class="back-button" onclick="router.back()">←</button>
+                <h1 class="header-title">Today's Habits</h1>
+                <button class="icon-button" onclick="Screens.habits.refresh()">⟳</button>
+            </header>
+            
+            <div class="list-container" id="habits-list">
+                <!-- Habits list rendered here -->
+            </div>
+        </div>
+    </template>
+    
+    <!-- ============================================ -->
+    <!-- Toast/Modal Templates -->
+    <!-- ============================================ -->
+    
+    <template id="toast-template">
+        <div class="toast">
+            <span class="toast-icon"></span>
+            <span class="toast-message"></span>
+        </div>
+    </template>
+    
+    <template id="loading-overlay-template">
+        <div class="loading-overlay">
+            <div class="loading-spinner"></div>
+        </div>
+    </template>
+    
+    <!-- ============================================ -->
+    <!-- Scripts -->
+    <!-- ============================================ -->
+    <script src="js/utils.js"></script>
+    <script src="js/api-client.js"></script>
+    <script src="js/router.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

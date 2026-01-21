@@ -58,7 +58,7 @@
 - **DONE** 6.2.4: Verify end-to-end connectivity from a mobile device
 
 ### 6.3: PWA Frontend (Minimal UI)
-- **TO DO** 6.3.1: Create basic HTML structure and PWA manifest (`web/index.html`, `manifest.json`)
+- **IN REVIEW** 6.3.1: Create basic HTML structure and PWA manifest (`web/index.html`, `manifest.json`)
 - **TO DO** 6.3.2: Implement mobile-first CSS (buttons, layout, status bar)
 - **TO DO** 6.3.3: Build JavaScript API Client with standard response handling
 - **TO DO** 6.3.4: Implement Daily Context & Review views (display & copy)
