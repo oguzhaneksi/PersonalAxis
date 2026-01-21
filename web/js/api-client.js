@@ -30,7 +30,7 @@ class APIClient {
    */
   async request(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`;
-    
+
     const headers = {
       'Content-Type': 'application/json',
       [this.apiKeyHeader]: this.apiKey,
@@ -64,7 +64,7 @@ class APIClient {
       if (error instanceof APIError) {
         throw error;
       }
-      
+
       console.error('Fetch Error:', error);
       throw new APIError(
         'Connection to server failed. Please check if the backend is running.',

@@ -6,7 +6,9 @@ from api.routers import context, journal, goals, habits, reviews
 from api.auth import verify_api_key
 from api.exceptions import PersonalAxisException
 from api.auth import API_KEY_NAME
+from fastapi.staticfiles import StaticFiles
 import datetime
+import os
 
 app = FastAPI(
     title="PersonalAxis API",
@@ -102,3 +104,7 @@ app.include_router(journal.router, dependencies=[Depends(verify_api_key)])
 app.include_router(goals.router, dependencies=[Depends(verify_api_key)])
 app.include_router(habits.router, dependencies=[Depends(verify_api_key)])
 app.include_router(reviews.router, dependencies=[Depends(verify_api_key)])
+
+# Serve Web Frontend (PWA)
+WEB_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "web")
+app.mount("/", StaticFiles(directory=WEB_DIR, html=True), name="web")
