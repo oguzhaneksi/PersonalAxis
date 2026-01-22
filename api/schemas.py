@@ -10,6 +10,11 @@ class StandardResponse(BaseModel):
     data: Optional[dict] = None
     error: Optional[dict] = None
 
+# --- Auth Models ---
+
+class LoginRequest(BaseModel):
+    password: str = Field(..., min_length=1, description="Environment-stored password")
+
 # --- Journal Models ---
 
 class ActionItem(BaseModel):

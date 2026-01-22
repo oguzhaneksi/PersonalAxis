@@ -89,6 +89,12 @@ html, body {
   margin-bottom: var(--space-lg);
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
 .header-title {
   font-size: var(--font-size-xl);
   font-weight: 600;
@@ -150,6 +156,35 @@ html, body {
   font-size: var(--font-size-sm);
   cursor: pointer;
   padding: var(--space-sm);
+}
+
+/* Login Screen */
+.login-screen {
+  justify-content: center;
+}
+
+.login-card {
+  background: var(--color-bg-card);
+  border-radius: var(--border-radius-lg);
+  padding: var(--space-xl);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: var(--space-lg);
+}
+
+.login-header .subtitle {
+  margin-top: var(--space-xs);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.form-error {
+  color: var(--color-error);
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--space-md);
 }
 
 /* Home Screen Grid */

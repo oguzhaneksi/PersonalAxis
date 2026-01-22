@@ -3,26 +3,8 @@
  * Handles all communication with the backend API
  */
 class APIClient {
-  constructor(initialApiKey = '') {
+  constructor() {
     this.baseURL = window.location.origin;
-    // Store API key in memory only to avoid persisting sensitive data in localStorage,
-    // which is accessible to any script running in the page (including via XSS).
-    this.apiKey = initialApiKey;
-    this.apiKeyHeader = 'X-API-Key'; // Matches API_KEY_NAME in backend
-  }
-
-  /**
-   * Set API key (stored in memory only; not persisted to localStorage for security reasons)
-   */
-  setApiKey(key) {
-    this.apiKey = key;
-  }
-
-  /**
-   * Check if API key is configured
-   */
-  hasApiKey() {
-    return !!this.apiKey;
   }
 
   /**
@@ -33,7 +15,6 @@ class APIClient {
 
     const headers = {
       'Content-Type': 'application/json',
-      [this.apiKeyHeader]: this.apiKey,
       ...options.headers
     };
 
@@ -44,7 +25,8 @@ class APIClient {
     try {
       const response = await fetch(url, {
         ...options,
-        headers
+        headers,
+        credentials: 'include'
       });
 
       const data = await response.json();
@@ -54,7 +36,7 @@ class APIClient {
         const error = data.error || {};
         throw new APIError(
           error.user_message || error.message || 'Operation failed',
-          error.code || (response.status === 401 ? 'AUTH_INVALID' : 'SERVER_ERROR'),
+          error.code || (response.status === 401 ? 'AUTH_EXPIRED' : 'SERVER_ERROR'),
           response.status
         );
       }
@@ -75,6 +57,23 @@ class APIClient {
   }
 
   // ============ Context Endpoints ============
+
+  async login(password) {
+    return this.request('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ password })
+    });
+  }
+
+  async logout() {
+    return this.request('/api/auth/logout', {
+      method: 'POST'
+    });
+  }
+
+  async checkAuthStatus() {
+    return this.request('/api/auth/status');
+  }
 
   async getDailyContext() {
     return this.request('/api/context/daily');

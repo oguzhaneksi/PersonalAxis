@@ -36,7 +36,10 @@
         <div class="screen home-screen">
             <header class="header">
                 <h1 class="header-title">PersonalAxis</h1>
-                <button class="icon-button" onclick="Screens.home.showHelp()">?</button>
+                <div class="header-actions">
+                    <button class="icon-button" onclick="Screens.home.showHelp()">?</button>
+                    <button class="icon-button" onclick="Screens.home.logout()">⎋</button>
+                </div>
             </header>
 
             <div class="action-grid">
@@ -72,6 +75,28 @@
                     <span id="connection-status">Checking...</span>
                 </div>
                 <button class="text-button" onclick="Screens.home.refresh()">Refresh</button>
+            </div>
+        </div>
+    </template>
+
+    <!-- Login Screen -->
+    <template id="login-screen">
+        <div class="screen login-screen">
+            <div class="login-card">
+                <div class="login-header">
+                    <h1 class="header-title">PersonalAxis</h1>
+                    <p class="subtitle">Sign in to continue</p>
+                </div>
+
+                <form class="form" id="login-form">
+                    <div class="form-group">
+                        <label class="form-label" for="login-password">Password</label>
+                        <input type="password" id="login-password" class="form-input" placeholder="Enter password"
+                            autocomplete="current-password" required>
+                    </div>
+                    <div class="form-error" id="login-error" style="display:none;"></div>
+                    <button type="submit" class="btn btn-primary btn-full">Login</button>
+                </form>
             </div>
         </div>
     </template>

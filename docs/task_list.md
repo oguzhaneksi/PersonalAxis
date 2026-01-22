@@ -65,14 +65,21 @@
 - **DONE** 6.3.5: Implement Quick Journal form & success states
 - **DONE** 6.3.6: Implement Goals & Habits list views
 
-### 6.4: Service Worker & Polish
-- **TO DO** 6.4.1: Implement Service Worker for offline detection and caching
-- **TO DO** 6.4.2: Add "Add to Home Screen" instructions and icons
-- **TO DO** 6.4.3: Add haptic feedback and loading skeletons
-- **TO DO** 6.4.4: Final cross-device testing and performance audit
+### 6.4: Cookie-Based Authentication
+- **IN REVIEW** 6.4.1: Implement session management in `auth.py` (login/logout/status endpoints)
+- **IN REVIEW** 6.4.2: Create `verify_session` dependency and update `main.py` routes
+- **IN REVIEW** 6.4.3: Update `api-client.js` to use cookies (remove API key, add credentials)
+- **IN REVIEW** 6.4.4: Add login screen UI to `app.js` with auth flow handling
+- **TO DO** 6.4.5: Add `PERSONALAXIS_PASSWORD` to `.env` and test end-to-end
 
-### 6.5: Production & Automation
-- **TO DO** 6.5.1: Create launchd plists for API server and Tunnel autostart
-- **TO DO** 6.5.2: Setup centralized logging for API and Tunnel
-- **TO DO** 6.5.3: Generate OpenAPI/Swagger documentation
-- **TO DO** 6.5.4: Create Mobile Setup & Troubleshooting guide
+### 6.5: Service Worker & Polish
+- **TO DO** 6.5.1: Implement Service Worker for offline detection and caching
+- **TO DO** 6.5.2: Add "Add to Home Screen" instructions and icons
+- **TO DO** 6.5.3: Add haptic feedback and loading skeletons
+- **TO DO** 6.5.4: Final cross-device testing and performance audit
+
+### 6.6: Production & Automation
+- **TO DO** 6.6.1: Create launchd plists for API server and Tunnel autostart
+- **TO DO** 6.6.2: Setup centralized logging for API and Tunnel
+- **TO DO** 6.6.3: Generate OpenAPI/Swagger documentation
+- **TO DO** 6.6.4: Create Mobile Setup & Troubleshooting guide

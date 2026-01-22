@@ -4,6 +4,24 @@
 
 // Screen handlers namespace
 const Screens = {};
+const AuthState = {
+  authenticated: false,
+  redirectPath: '/'
+};
+
+/**
+ * Check if an error is an authentication-related error requiring login
+ * @param {Object} error - The error object
+ * @returns {boolean}
+ */
+function isAuthenticationError(error) {
+  return (
+    error.code === 'AUTH_REQUIRED' || 
+    error.code === 'AUTH_EXPIRED' || 
+    error.code === 'AUTH_MISSING' || 
+    error.status === 401
+  );
+}
 
 // Global error handler
 function handleError(error) {
@@ -14,7 +32,14 @@ function handleError(error) {
   if (error.code === 'OFFLINE' || error.message?.includes('network')) {
     message = 'No internet connection';
   } else if (error.code === 'AUTH_INVALID') {
-    message = 'Invalid API key';
+    message = 'Invalid credentials';
+  } else if (isAuthenticationError(error)) {
+    message = 'Please log in to continue';
+    AuthState.authenticated = false;
+    if (window.location.hash !== '#/login') {
+      AuthState.redirectPath = Utils.getCurrentPath();
+      router.navigate('/login');
+    }
   } else if (error.code === 'NOTION_RATE_LIMIT') {
     message = 'Too many requests. Please wait.';
   } else if (error.message) {
@@ -28,6 +53,7 @@ function handleError(error) {
 function initRoutes() {
   router
     .on('/', () => Screens.home.show())
+    .on('/login', () => Screens.login.show())
     .on('/daily-context', () => Screens.dailyContext.show())
     .on('/review-context', () => Screens.reviewContext.show())
     .on('/save-journal', () => Screens.saveJournal?.show())
@@ -35,6 +61,58 @@ function initRoutes() {
     .on('/goals', () => Screens.goals?.show())
     .on('/habits', () => Screens.habits?.show());
 }
+
+
+// ==========================================
+// AUTH SCREEN
+// ==========================================
+Screens.login = {
+  show() {
+    if (AuthState.authenticated) {
+      router.navigate('/');
+      return;
+    }
+    Utils.render(Utils.getTemplate('login-screen'));
+
+    const form = document.getElementById('login-form');
+    const errorEl = document.getElementById('login-error');
+
+    if (!form) return;
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (errorEl) errorEl.style.display = 'none';
+
+      const passwordInput = document.getElementById('login-password');
+      if (!passwordInput) {
+        if (errorEl) {
+          errorEl.textContent = 'Login form is missing the password field.';
+          errorEl.style.display = 'block';
+        }
+        return;
+      }
+      const password = passwordInput.value;
+
+      Utils.setLoading(true);
+      try {
+        await api.login(password);
+        AuthState.authenticated = true;
+        const target = AuthState.redirectPath || '/';
+        AuthState.redirectPath = '/';
+        router.navigate(target);
+        Utils.showToast('Logged in successfully');
+      } catch (error) {
+        if (errorEl) {
+          errorEl.textContent = error.message || 'Login failed';
+          errorEl.style.display = 'block';
+        }
+        Utils.haptic('error');
+      } finally {
+        Utils.setLoading(false);
+      }
+    });
+  }
+};
 
 
 // ==========================================
@@ -76,6 +154,21 @@ Screens.home = {
 
   showHelp() {
     alert('PersonalAxis PWA v1.0.0\n\nAI-Powered Life OS');
+  },
+
+  async logout() {
+    Utils.setLoading(true);
+    try {
+      await api.logout();
+      AuthState.authenticated = false;
+      AuthState.redirectPath = '/';
+      router.navigate('/login');
+      Utils.showToast('Logged out');
+    } catch (error) {
+      handleError(error);
+    } finally {
+      Utils.setLoading(false);
+    }
   }
 };
 
@@ -473,15 +566,26 @@ function initNetworkStatus() {
 }
 
 // Initialize app
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   initNetworkStatus();
 
   initRoutes();
 
-  // Check for API key
-  if (!api.hasApiKey()) {
-    console.warn('API Key not found. Please configure it using the application settings or your preferred secure configuration method.');
-    Utils.showToast('API Key missing', 'error');
+  try {
+    const response = await api.checkAuthStatus();
+    AuthState.authenticated = !!response.data?.authenticated;
+  } catch (error) {
+    AuthState.authenticated = false;
+  }
+
+  if (!AuthState.authenticated) {
+    const currentPath = Utils.getCurrentPath();
+    if (currentPath !== '/login') {
+      AuthState.redirectPath = currentPath;
+    }
+    router.navigate('/login');
+  } else {
+    router.handleRoute();
   }
 
   // Register Service Worker

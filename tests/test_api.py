@@ -11,10 +11,81 @@ client = TestClient(app)
 # Patch os.getenv for Auth
 @pytest.fixture(autouse=True)
 def mock_env(monkeypatch):
-    monkeypatch.setenv("PERSONALAXIS_API_KEY", "test_key")
+    monkeypatch.setenv("PERSONALAXIS_PASSWORD", "test_password")
+    monkeypatch.setenv("PERSONALAXIS_COOKIE_SECURE", "false")  # For testing
+    monkeypatch.setenv("NOTION_TOKEN", "secret_test_token")  # Required for NotionService
 
-def get_headers():
-    return {"X-API-Key": "test_key"}
+def login_and_get_cookies() -> dict:
+    """Helper to login and return session cookies for TestClient."""
+    response = client.post("/api/auth/login", json={"password": "test_password"})
+    assert response.status_code == 200
+    # TestClient doesn't persist cookies automatically, so we need to extract them
+    # and pass them explicitly to subsequent requests
+    return dict(response.cookies)
+
+# ============================================================================
+# AUTHENTICATION TESTS
+# ============================================================================
+
+def test_login_success():
+    """Test successful login with correct password."""
+    response = client.post("/api/auth/login", json={"password": "test_password"})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["success"] is True
+    assert "expires_at" in data["data"]
+    assert "personalaxis_session" in response.cookies
+
+def test_login_failure():
+    """Test login failure with incorrect password."""
+    response = client.post("/api/auth/login", json={"password": "wrong_password"})
+    assert response.status_code == 403
+    data = response.json()
+    assert data["success"] is False
+    assert data["error"]["code"] == "AUTH_INVALID"
+
+def test_login_missing_password():
+    """Test login failure when password is missing (validation error)."""
+    response = client.post("/api/auth/login", json={})
+    assert response.status_code == 422
+    data = response.json()
+    assert data["success"] is False
+    assert data["error"]["code"] == "VALIDATION_ERROR"
+
+def test_logout():
+    """Test logout clears session cookie."""
+    cookies = login_and_get_cookies()
+    response = client.post("/api/auth/logout", cookies=cookies)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["success"] is True
+    assert data["data"]["status"] == "logged_out"
+
+def test_auth_status_authenticated():
+    """Test auth status returns authenticated when session is valid."""
+    cookies = login_and_get_cookies()
+    response = client.get("/api/auth/status", cookies=cookies)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["success"] is True
+    assert data["data"]["authenticated"] is True
+    assert "expires_at" in data["data"]
+
+def test_auth_status_not_authenticated():
+    """Test auth status returns not authenticated without session."""
+    response = client.get("/api/auth/status")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["success"] is True
+    assert data["data"]["authenticated"] is False
+
+def test_auth_status_invalid_session():
+    """Test auth status with invalid session cookie."""
+    response = client.get("/api/auth/status", cookies={"personalaxis_session": "invalid_token"})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["data"]["authenticated"] is False
+
 
 # ============================================================================
 # BASIC FUNCTIONALITY TESTS (Existing)
@@ -30,7 +101,8 @@ def test_get_daily_context(mock_gen_cls):
     mock_gen = mock_gen_cls.return_value
     mock_gen.generate_daily_context.return_value = "# Daily Context"
     
-    response = client.get("/api/context/daily", headers=get_headers())
+    cookies = login_and_get_cookies()
+    response = client.get("/api/context/daily", cookies=cookies)
     assert response.status_code == 200
     assert response.json()["success"] is True
 
@@ -39,8 +111,9 @@ def test_create_quick_journal(mock_service_cls):
     mock_service = mock_service_cls.return_value
     mock_service.save_journal_from_structured_data.return_value = "new-page-id"
     
+    cookies = login_and_get_cookies()
     payload = {"content": "Test journal"}
-    response = client.post("/api/journal/quick", json=payload, headers=get_headers())
+    response = client.post("/api/journal/quick", json=payload, cookies=cookies)
     assert response.status_code == 200
     assert response.json()["success"] is True
 
@@ -65,7 +138,8 @@ def test_save_full_journal(mock_service_cls):
         ]
     }
     
-    response = client.post("/api/journal/", json=payload, headers=get_headers())
+    cookies = login_and_get_cookies()
+    response = client.post("/api/journal/", json=payload, cookies=cookies)
     assert response.status_code == 200
     assert response.json()["data"]["tasks_created"] == ["Buy milk"]
 
@@ -94,7 +168,8 @@ def test_save_review(mock_service_cls):
         ]
     }
     
-    response = client.post("/api/reviews/weekly", json=payload, headers=get_headers())
+    cookies = login_and_get_cookies()
+    response = client.post("/api/reviews/weekly", json=payload, cookies=cookies)
     if response.status_code != 200:
         print(response.json())
         
@@ -106,7 +181,8 @@ def test_get_goals_status(mock_service_cls):
     mock_service = mock_service_cls.return_value
     mock_service.get_active_goals.return_value = [{"id": "1", "name": "Test Goal"}]
     
-    response = client.get("/api/goals/status", headers=get_headers())
+    cookies = login_and_get_cookies()
+    response = client.get("/api/goals/status", cookies=cookies)
     assert response.status_code == 200
     assert response.json()["success"] is True
 
@@ -124,7 +200,8 @@ def test_get_todays_habits(mock_habit_cls):
         }
     ]
     
-    response = client.get("/api/habits/", headers=get_headers())
+    cookies = login_and_get_cookies()
+    response = client.get("/api/habits/", cookies=cookies)
     assert response.status_code == 200
     
     data = response.json()["data"]["habits"]
@@ -139,8 +216,8 @@ def test_get_todays_habits(mock_habit_cls):
 # AUTHENTICATION ERROR TESTS
 # ============================================================================
 
-def test_auth_missing():
-    """Test that missing API key returns AUTH_MISSING error code."""
+def test_auth_missing_on_protected_route():
+    """Test that missing session cookie returns AUTH_MISSING error code."""
     response = client.get("/api/context/daily")
     assert response.status_code == 403
     data = response.json()
@@ -148,25 +225,25 @@ def test_auth_missing():
     assert data["error"]["code"] == "AUTH_MISSING"
     assert "user_message" in data["error"]
 
-def test_auth_invalid():
-    """Test that invalid API key returns AUTH_INVALID error code."""
-    response = client.get("/api/context/daily", headers={"X-API-Key": "wrong"})
-    assert response.status_code == 403
+def test_auth_expired_session():
+    """Test that expired/invalid session returns AUTH_EXPIRED error code."""
+    response = client.get("/api/context/daily", cookies={"personalaxis_session": "invalid_token"})
+    assert response.status_code == 401
     data = response.json()
     assert data["success"] is False
-    assert data["error"]["code"] == "AUTH_INVALID"
+    assert data["error"]["code"] == "AUTH_EXPIRED"
 
-def test_auth_server_key_not_set(monkeypatch):
-    """Test server misconfiguration when API key env var is not set."""
-    monkeypatch.delenv("PERSONALAXIS_API_KEY", raising=False)
-    response = client.get("/api/context/daily", headers={"X-API-Key": "any_key"})
+def test_auth_server_password_not_set(monkeypatch):
+    """Test server misconfiguration when password env var is not set."""
+    monkeypatch.delenv("PERSONALAXIS_PASSWORD", raising=False)
+    response = client.post("/api/auth/login", json={"password": "any_password"})
     assert response.status_code == 500
     data = response.json()
     assert data["success"] is False
     assert "not configured" in data["error"]["message"]
 
 def test_protected_endpoints_require_auth():
-    """Test that all protected endpoints return 403 without API key."""
+    """Test that all protected endpoints return 403 without session."""
     endpoints = [
         "/api/context/daily",
         "/api/context/review/weekly",
@@ -198,7 +275,8 @@ def test_notion_unauthorized_error(mock_gen_cls):
     mock_gen = mock_gen_cls.return_value
     mock_gen.generate_daily_context.side_effect = create_mock_api_error("unauthorized", 401)
     
-    response = client.get("/api/context/daily", headers=get_headers())
+    cookies = login_and_get_cookies()
+    response = client.get("/api/context/daily", cookies=cookies)
     assert response.status_code == 401
     data = response.json()
     assert data["success"] is False
@@ -211,7 +289,8 @@ def test_notion_rate_limit_error(mock_gen_cls):
     mock_gen = mock_gen_cls.return_value
     mock_gen.generate_daily_context.side_effect = create_mock_api_error("rate_limited", 429)
     
-    response = client.get("/api/context/daily", headers=get_headers())
+    cookies = login_and_get_cookies()
+    response = client.get("/api/context/daily", cookies=cookies)
     assert response.status_code == 429
     data = response.json()
     assert data["success"] is False
@@ -225,7 +304,8 @@ def test_notion_timeout_error(mock_gen_cls):
     mock_gen = mock_gen_cls.return_value
     mock_gen.generate_daily_context.side_effect = requests.exceptions.Timeout("Connection timeout")
     
-    response = client.get("/api/context/daily", headers=get_headers())
+    cookies = login_and_get_cookies()
+    response = client.get("/api/context/daily", cookies=cookies)
     assert response.status_code == 504
     data = response.json()
     assert data["success"] is False
@@ -237,8 +317,9 @@ def test_notion_generic_api_error(mock_service_cls):
     mock_service = mock_service_cls.return_value
     mock_service.save_journal_from_structured_data.side_effect = create_mock_api_error("internal_server_error", 500)
     
+    cookies = login_and_get_cookies()
     payload = {"content": "Test"}
-    response = client.post("/api/journal/quick", json=payload, headers=get_headers())
+    response = client.post("/api/journal/quick", json=payload, cookies=cookies)
     assert response.status_code == 502
     data = response.json()
     assert data["success"] is False
@@ -252,7 +333,7 @@ def test_notion_restricted_resource_error(mock_gen_cls):
     mock_gen = mock_gen_cls.return_value
     mock_gen.generate_daily_context.side_effect = create_mock_api_error("restricted_resource", 403)
     
-    response = client.get("/api/context/daily", headers=get_headers())
+    response = client.get("/api/context/daily", cookies=login_and_get_cookies())
     assert response.status_code == 401  # Mapped to 401 in error_handlers
     data = response.json()
     assert data["success"] is False
@@ -265,7 +346,7 @@ def test_notion_object_not_found_error(mock_gen_cls):
     mock_gen = mock_gen_cls.return_value
     mock_gen.generate_daily_context.side_effect = create_mock_api_error("object_not_found", 404)
     
-    response = client.get("/api/context/daily", headers=get_headers())
+    response = client.get("/api/context/daily", cookies=login_and_get_cookies())
     assert response.status_code == 404
     data = response.json()
     assert data["success"] is False
@@ -278,7 +359,7 @@ def test_notion_service_unavailable_error(mock_gen_cls):
     mock_gen = mock_gen_cls.return_value
     mock_gen.generate_daily_context.side_effect = create_mock_api_error("service_unavailable", 503)
     
-    response = client.get("/api/context/daily", headers=get_headers())
+    response = client.get("/api/context/daily", cookies=login_and_get_cookies())
     assert response.status_code == 502
     data = response.json()
     assert data["error"]["code"] == "NOTION_API_ERROR"
@@ -291,7 +372,7 @@ def test_notion_conflict_error(mock_gen_cls):
     mock_gen = mock_gen_cls.return_value
     mock_gen.generate_daily_context.side_effect = create_mock_api_error("conflict_error", 409)
     
-    response = client.get("/api/context/daily", headers=get_headers())
+    response = client.get("/api/context/daily", cookies=login_and_get_cookies())
     assert response.status_code == 502
     data = response.json()
     assert data["error"]["code"] == "NOTION_API_ERROR"
@@ -304,7 +385,7 @@ def test_notion_validation_error(mock_gen_cls):
     mock_gen = mock_gen_cls.return_value
     mock_gen.generate_daily_context.side_effect = create_mock_api_error("validation_error", 400)
     
-    response = client.get("/api/context/daily", headers=get_headers())
+    response = client.get("/api/context/daily", cookies=login_and_get_cookies())
     assert response.status_code == 502
     data = response.json()
     assert data["error"]["code"] == "NOTION_API_ERROR"
@@ -318,7 +399,7 @@ def test_notion_validation_error(mock_gen_cls):
 def test_validation_error_missing_required_field():
     """Test VALIDATION_ERROR when required field is missing."""
     payload = {"title": "Test"}  # Missing 'content'
-    response = client.post("/api/journal/quick", json=payload, headers=get_headers())
+    response = client.post("/api/journal/quick", json=payload, cookies=login_and_get_cookies())
     assert response.status_code == 422
     data = response.json()
     assert data["success"] is False
@@ -332,7 +413,7 @@ def test_validation_error_invalid_field_type():
         "raw_content": "Content",
         "date": "invalid-date"  # Should be YYYY-MM-DD
     }
-    response = client.post("/api/journal/", json=payload, headers=get_headers())
+    response = client.post("/api/journal/", json=payload, cookies=login_and_get_cookies())
     assert response.status_code == 422
     data = response.json()
     assert data["error"]["code"] == "VALIDATION_ERROR"
@@ -351,12 +432,12 @@ def test_validation_error_invalid_priority():
             }
         ]
     }
-    response = client.post("/api/journal/", json=payload, headers=get_headers())
+    response = client.post("/api/journal/", json=payload, cookies=login_and_get_cookies())
     assert response.status_code == 422
 
 def test_invalid_review_type():
     """Test INVALID_REVIEW_TYPE error for unsupported review types."""
-    response = client.get("/api/context/review/invalid_type", headers=get_headers())
+    response = client.get("/api/context/review/invalid_type", cookies=login_and_get_cookies())
     assert response.status_code == 422
     data = response.json()
     assert data["success"] is False
@@ -375,7 +456,7 @@ def test_review_type_mismatch():
         "lessons_learned": "Learned something",
         "next_period_focus": ["Focus"]
     }
-    response = client.post("/api/reviews/monthly", json=payload, headers=get_headers())
+    response = client.post("/api/reviews/monthly", json=payload, cookies=login_and_get_cookies())
     assert response.status_code == 400
 
 
@@ -389,7 +470,7 @@ def test_error_response_structure(mock_gen_cls):
     mock_gen = mock_gen_cls.return_value
     mock_gen.generate_daily_context.side_effect = create_mock_api_error("unauthorized", 401)
     
-    response = client.get("/api/context/daily", headers=get_headers())
+    response = client.get("/api/context/daily", cookies=login_and_get_cookies())
     data = response.json()
     
     # Check standard error structure
@@ -426,7 +507,7 @@ def test_goals_endpoint_notion_error_handling(mock_service_cls):
     mock_service = mock_service_cls.return_value
     mock_service.get_active_goals.side_effect = create_mock_api_error("rate_limited", 429)
     
-    response = client.get("/api/goals/status", headers=get_headers())
+    response = client.get("/api/goals/status", cookies=login_and_get_cookies())
     assert response.status_code == 429
     assert response.json()["error"]["code"] == "NOTION_RATE_LIMIT"
 
@@ -436,7 +517,7 @@ def test_habits_endpoint_timeout_handling(mock_service_cls):
     mock_service = mock_service_cls.return_value
     mock_service.get_todays_habits.side_effect = requests.exceptions.Timeout()
     
-    response = client.get("/api/habits/", headers=get_headers())
+    response = client.get("/api/habits/", cookies=login_and_get_cookies())
     assert response.status_code == 504
     assert response.json()["error"]["code"] == "NOTION_TIMEOUT"
 
@@ -458,7 +539,7 @@ def test_reviews_endpoint_error_handling(mock_service_cls):
         "next_period_focus": ["Focus"]
     }
     
-    response = client.post("/api/reviews/weekly", json=payload, headers=get_headers())
+    response = client.post("/api/reviews/weekly", json=payload, cookies=login_and_get_cookies())
     assert response.status_code == 401
     assert response.json()["error"]["code"] == "NOTION_AUTH_FAILED"
 
@@ -472,11 +553,13 @@ def test_review_context_with_auto_period(mock_gen_cls):
     """Test that review context auto-calculates period when not provided."""
     mock_gen = mock_gen_cls.return_value
     mock_gen.generate_review_context.return_value = "# Review Context"
-    mock_gen.get_period.return_value = "2026-W03"
+    year, week, _ = datetime.date.today().isocalendar()
+    current_week_period = f"{year}-W{week:02d}"
+    mock_gen.get_period.return_value = current_week_period
     
-    response = client.get("/api/context/review/weekly", headers=get_headers())
+    response = client.get("/api/context/review/weekly", cookies=login_and_get_cookies())
     assert response.status_code == 200
-    assert response.json()["data"]["period"] == "2026-W03"
+    assert response.json()["data"]["period"] == current_week_period
 
 @patch("api.routers.context.ContextGenerator")
 def test_review_context_with_explicit_period(mock_gen_cls):
@@ -486,7 +569,7 @@ def test_review_context_with_explicit_period(mock_gen_cls):
     # mock get_period to return the second argument (period)
     mock_gen.get_period.side_effect = lambda t, p: p
     
-    response = client.get("/api/context/review/weekly?period=2026-W01", headers=get_headers())
+    response = client.get("/api/context/review/weekly?period=2026-W01", cookies=login_and_get_cookies())
     assert response.status_code == 200
     assert response.json()["data"]["period"] == "2026-W01"
 
@@ -507,7 +590,7 @@ def test_validation_empty_wins_list():
         "lessons_learned": "Learned something",
         "next_period_focus": ["Focus"]
     }
-    response = client.post("/api/reviews/weekly", json=payload, headers=get_headers())
+    response = client.post("/api/reviews/weekly", json=payload, cookies=login_and_get_cookies())
     assert response.status_code == 422
     assert response.json()["error"]["code"] == "VALIDATION_ERROR"
 
@@ -523,7 +606,7 @@ def test_validation_empty_challenges_list():
         "lessons_learned": "Learned something",
         "next_period_focus": ["Focus"]
     }
-    response = client.post("/api/reviews/weekly", json=payload, headers=get_headers())
+    response = client.post("/api/reviews/weekly", json=payload, cookies=login_and_get_cookies())
     assert response.status_code == 422
 
 def test_validation_empty_next_period_focus():
@@ -538,7 +621,7 @@ def test_validation_empty_next_period_focus():
         "lessons_learned": "Learned something",
         "next_period_focus": []  # Empty list should fail
     }
-    response = client.post("/api/reviews/weekly", json=payload, headers=get_headers())
+    response = client.post("/api/reviews/weekly", json=payload, cookies=login_and_get_cookies())
     assert response.status_code == 422
 
 def test_validation_review_summary_too_short():
@@ -553,7 +636,7 @@ def test_validation_review_summary_too_short():
         "lessons_learned": "Learned something",
         "next_period_focus": ["Focus"]
     }
-    response = client.post("/api/reviews/weekly", json=payload, headers=get_headers())
+    response = client.post("/api/reviews/weekly", json=payload, cookies=login_and_get_cookies())
     assert response.status_code == 422
 
 def test_validation_invalid_period_assessment():
@@ -568,7 +651,7 @@ def test_validation_invalid_period_assessment():
         "lessons_learned": "Learned something",
         "next_period_focus": ["Focus"]
     }
-    response = client.post("/api/reviews/weekly", json=payload, headers=get_headers())
+    response = client.post("/api/reviews/weekly", json=payload, cookies=login_and_get_cookies())
     assert response.status_code == 422
 
 def test_validation_invalid_goal_status():
@@ -591,7 +674,7 @@ def test_validation_invalid_goal_status():
             }
         ]
     }
-    response = client.post("/api/reviews/weekly", json=payload, headers=get_headers())
+    response = client.post("/api/reviews/weekly", json=payload, cookies=login_and_get_cookies())
     assert response.status_code == 422
 
 def test_validation_progress_delta_out_of_range_positive():
@@ -614,7 +697,7 @@ def test_validation_progress_delta_out_of_range_positive():
             }
         ]
     }
-    response = client.post("/api/reviews/weekly", json=payload, headers=get_headers())
+    response = client.post("/api/reviews/weekly", json=payload, cookies=login_and_get_cookies())
     assert response.status_code == 422
 
 def test_validation_progress_delta_out_of_range_negative():
@@ -637,19 +720,19 @@ def test_validation_progress_delta_out_of_range_negative():
             }
         ]
     }
-    response = client.post("/api/reviews/weekly", json=payload, headers=get_headers())
+    response = client.post("/api/reviews/weekly", json=payload, cookies=login_and_get_cookies())
     assert response.status_code == 422
 
 def test_validation_journal_content_too_long():
     """Test that journal content exceeding max_length fails validation."""
     payload = {"content": "x" * 5001}  # Exceeds 5000 char limit
-    response = client.post("/api/journal/quick", json=payload, headers=get_headers())
+    response = client.post("/api/journal/quick", json=payload, cookies=login_and_get_cookies())
     assert response.status_code == 422
 
 def test_validation_journal_empty_content():
     """Test that empty journal content fails validation."""
     payload = {"content": ""}
-    response = client.post("/api/journal/quick", json=payload, headers=get_headers())
+    response = client.post("/api/journal/quick", json=payload, cookies=login_and_get_cookies())
     assert response.status_code == 422
 
 def test_validation_empty_lessons_learned():
@@ -664,7 +747,7 @@ def test_validation_empty_lessons_learned():
         "lessons_learned": "",  # Empty string
         "next_period_focus": ["Focus"]
     }
-    response = client.post("/api/reviews/weekly", json=payload, headers=get_headers())
+    response = client.post("/api/reviews/weekly", json=payload, cookies=login_and_get_cookies())
     assert response.status_code == 422
 
 
@@ -684,7 +767,7 @@ def test_journal_default_date_handling(mock_service_cls):
         # date is omitted, should default to today
     }
     
-    response = client.post("/api/journal/", json=payload, headers=get_headers())
+    response = client.post("/api/journal/", json=payload, cookies=login_and_get_cookies())
     assert response.status_code == 200
     
     # Verify that save was called with today's date
@@ -699,7 +782,7 @@ def test_quick_journal_default_title(mock_service_cls):
     
     payload = {"content": "Test content"}  # No title provided
     
-    response = client.post("/api/journal/quick", json=payload, headers=get_headers())
+    response = client.post("/api/journal/quick", json=payload, cookies=login_and_get_cookies())
     assert response.status_code == 200
     
     # Verify that a default title was generated
@@ -718,7 +801,7 @@ def test_journal_with_empty_action_items(mock_service_cls):
         "action_items": []
     }
     
-    response = client.post("/api/journal/", json=payload, headers=get_headers())
+    response = client.post("/api/journal/", json=payload, cookies=login_and_get_cookies())
     assert response.status_code == 200
     assert response.json()["data"]["tasks_created"] == []
 
@@ -753,7 +836,7 @@ def test_journal_with_multiple_action_items(mock_service_cls):
         ]
     }
     
-    response = client.post("/api/journal/", json=payload, headers=get_headers())
+    response = client.post("/api/journal/", json=payload, cookies=login_and_get_cookies())
     assert response.status_code == 200
     assert len(response.json()["data"]["tasks_created"]) == 3
     assert response.json()["data"]["tasks_created"] == ["Task 1", "Task 2", "Task 3"]
@@ -780,7 +863,7 @@ def test_journal_with_all_optional_fields(mock_service_cls):
         ]
     }
     
-    response = client.post("/api/journal/", json=payload, headers=get_headers())
+    response = client.post("/api/journal/", json=payload, cookies=login_and_get_cookies())
     assert response.status_code == 200
     
     # Verify all fields were passed to service
@@ -812,7 +895,7 @@ def test_review_with_empty_goal_updates(mock_service_cls):
         "goal_updates": []  # Empty but valid
     }
     
-    response = client.post("/api/reviews/weekly", json=payload, headers=get_headers())
+    response = client.post("/api/reviews/weekly", json=payload, cookies=login_and_get_cookies())
     assert response.status_code == 200
     assert response.json()["data"]["updated_goals"] == []
 
@@ -854,7 +937,7 @@ def test_review_with_multiple_goal_updates(mock_service_cls):
         ]
     }
     
-    response = client.post("/api/reviews/weekly", json=payload, headers=get_headers())
+    response = client.post("/api/reviews/weekly", json=payload, cookies=login_and_get_cookies())
     assert response.status_code == 200
     assert len(response.json()["data"]["updated_goals"]) == 3
     assert response.json()["data"]["updated_goals"] == ["Goal 1", "Goal 2", "Goal 3"]
@@ -885,7 +968,7 @@ def test_review_negative_progress_delta(mock_service_cls):
         ]
     }
     
-    response = client.post("/api/reviews/weekly", json=payload, headers=get_headers())
+    response = client.post("/api/reviews/weekly", json=payload, cookies=login_and_get_cookies())
     assert response.status_code == 200
 
 @patch("api.routers.reviews.ReviewService")
@@ -909,7 +992,7 @@ def test_review_all_assessment_types(mock_service_cls):
             "next_period_focus": ["Focus"]
         }
         
-        response = client.post("/api/reviews/weekly", json=payload, headers=get_headers())
+        response = client.post("/api/reviews/weekly", json=payload, cookies=login_and_get_cookies())
         assert response.status_code == 200, f"Failed for assessment: {assessment}"
 
 
@@ -923,7 +1006,7 @@ def test_habits_empty_list(mock_service_cls):
     mock_service = mock_service_cls.return_value
     mock_service.get_todays_habits.return_value = []
     
-    response = client.get("/api/habits/", headers=get_headers())
+    response = client.get("/api/habits/", cookies=login_and_get_cookies())
     assert response.status_code == 200
     assert response.json()["data"]["habits"] == []
 
@@ -940,7 +1023,7 @@ def test_habits_missing_properties(mock_service_cls):
         }
     ]
     
-    response = client.get("/api/habits/", headers=get_headers())
+    response = client.get("/api/habits/", cookies=login_and_get_cookies())
     assert response.status_code == 200
     
     habits = response.json()["data"]["habits"]
@@ -963,7 +1046,7 @@ def test_habits_with_null_last_completed(mock_service_cls):
         }
     ]
     
-    response = client.get("/api/habits/", headers=get_headers())
+    response = client.get("/api/habits/", cookies=login_and_get_cookies())
     assert response.status_code == 200
     
     habits = response.json()["data"]["habits"]
@@ -997,7 +1080,7 @@ def test_habits_multiple_frequencies(mock_service_cls):
         }
     ]
     
-    response = client.get("/api/habits/", headers=get_headers())
+    response = client.get("/api/habits/", cookies=login_and_get_cookies())
     assert response.status_code == 200
     
     habits = response.json()["data"]["habits"]
@@ -1017,7 +1100,7 @@ def test_goals_empty_list(mock_service_cls):
     mock_service = mock_service_cls.return_value
     mock_service.get_active_goals.return_value = []
     
-    response = client.get("/api/goals/status", headers=get_headers())
+    response = client.get("/api/goals/status", cookies=login_and_get_cookies())
     assert response.status_code == 200
     assert response.json()["data"]["goals"] == []
 
@@ -1031,7 +1114,7 @@ def test_goals_multiple_goals(mock_service_cls):
         {"id": "3", "name": "Quarterly Goal", "type": "Quarterly"},
     ]
     
-    response = client.get("/api/goals/status", headers=get_headers())
+    response = client.get("/api/goals/status", cookies=login_and_get_cookies())
     assert response.status_code == 200
     
     goals = response.json()["data"]["goals"]
@@ -1048,7 +1131,7 @@ def test_success_response_structure(mock_gen_cls):
     mock_gen = mock_gen_cls.return_value
     mock_gen.generate_daily_context.return_value = "# Context"
     
-    response = client.get("/api/context/daily", headers=get_headers())
+    response = client.get("/api/context/daily", cookies=login_and_get_cookies())
     data = response.json()
     
     # Check standard success structure
@@ -1067,7 +1150,7 @@ def test_success_response_timestamp_format(mock_service_cls):
     mock_service.save_journal_from_structured_data.return_value = "page-id"
     
     payload = {"content": "Test"}
-    response = client.post("/api/journal/quick", json=payload, headers=get_headers())
+    response = client.post("/api/journal/quick", json=payload, cookies=login_and_get_cookies())
     
     assert response.status_code == 200
     # The response doesn't include timestamp, only success and data with page_id
@@ -1087,7 +1170,7 @@ def test_context_all_review_types(mock_gen_cls):
     review_types = ["weekly", "monthly", "quarterly", "yearly"]
     
     for review_type in review_types:
-        response = client.get(f"/api/context/review/{review_type}", headers=get_headers())
+        response = client.get(f"/api/context/review/{review_type}", cookies=login_and_get_cookies())
         assert response.status_code == 200, f"Failed for {review_type}"
         assert response.json()["data"]["review_type"] == review_type
 
@@ -1106,7 +1189,7 @@ def test_journal_with_turkish_characters(mock_service_cls):
         "content": "Bugün çok güzel bir gündü. İşler başarılı geçti. Şükürler olsun! Öğrendim ve büyüdüm."
     }
     
-    response = client.post("/api/journal/quick", json=payload, headers=get_headers())
+    response = client.post("/api/journal/quick", json=payload, cookies=login_and_get_cookies())
     assert response.status_code == 200
 
 @patch("api.routers.reviews.ReviewService")
@@ -1127,5 +1210,5 @@ def test_review_with_special_characters(mock_service_cls):
         "next_period_focus": ["Focus 🔥"]
     }
     
-    response = client.post("/api/reviews/weekly", json=payload, headers=get_headers())
+    response = client.post("/api/reviews/weekly", json=payload, cookies=login_and_get_cookies())
     assert response.status_code == 200

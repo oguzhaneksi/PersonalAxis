@@ -155,6 +155,13 @@ const Utils = {
   },
 
   /**
+   * Get current path from hash
+   */
+  getCurrentPath() {
+    return window.location.hash.replace('#', '') || '/';
+  },
+
+  /**
    * Debounce function
    */
   debounce(fn, delay) {
