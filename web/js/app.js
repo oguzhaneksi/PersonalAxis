@@ -16,9 +16,9 @@ const AuthState = {
  */
 function isAuthenticationError(error) {
   return (
-    error.code === 'AUTH_REQUIRED' || 
-    error.code === 'AUTH_EXPIRED' || 
-    error.code === 'AUTH_MISSING' || 
+    error.code === 'AUTH_REQUIRED' ||
+    error.code === 'AUTH_EXPIRED' ||
+    error.code === 'AUTH_MISSING' ||
     error.status === 401
   );
 }
@@ -448,7 +448,7 @@ Screens.goals = {
 
     try {
       const response = await api.getGoalsStatus();
-      const goals = response.data || [];
+      const goals = response.data.goals || [];
       this.renderGoals(goals);
     } catch (error) {
       handleError(error);
@@ -499,7 +499,7 @@ Screens.habits = {
 
     try {
       const response = await api.getTodaysHabits();
-      const habits = response.data || [];
+      const habits = response.data.habits || [];
       this.renderHabits(habits);
     } catch (error) {
       handleError(error);

@@ -87,7 +87,7 @@ class APIClient {
   // ============ Journal Endpoints ============
 
   async saveFullJournal(journalData) {
-    return this.request('/api/journal', {
+    return this.request('/api/journal/', {
       method: 'POST',
       body: JSON.stringify(journalData)
     });
@@ -102,7 +102,7 @@ class APIClient {
   // ============ Habits Endpoints ============
 
   async getTodaysHabits() {
-    return this.request('/api/habits');
+    return this.request('/api/habits/');
   }
 
   // ============ Reviews Endpoints ============
