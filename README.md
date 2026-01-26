@@ -44,6 +44,7 @@ PersonalAxis/
 ├── prompts/            # System prompts for JARVIS and Strategic Reviewer
 ├── scripts/            # Utility scripts for maintenance
 ├── tests/              # Pytest suite for API and Orchestration
+├── web/                # PWA Frontend (HTML, CSS, JS)
 └── requirements.txt    # Project dependencies
 ```
 
@@ -51,14 +52,36 @@ PersonalAxis/
 
 ## 🛠️ Technology Stack
 
-- **Language**: Python (Core logic & API)
-- **Frameworks**: 
-  - [FastAPI](https://fastapi.tiangolo.com/): High-performance API for mobile access.
-  - [Click](https://click.palletsprojects.com/): For the command-line interface.
+- **Language**: Python 3.9+ (Core logic & API)
+- **Backend Frameworks**: 
+  - [FastAPI](https://fastapi.tiangolo.com/): High-performance mobile-first API.
+  - [Click](https://click.palletsprojects.com/): Command-line interface orchestration.
+- **Frontend Stack**:
+  - **Single Page Application (SPA)**: Vanilla JS with template-based routing.
+  - **PWA**: Manifest-driven, mobile-optimized, with offline detection.
+  - **CSS**: Custom mobile-first responsive design with dark mode.
 - **Integrations**: 
   - [Notion SDK](https://github.com/ramnes/notion-sdk-py): Official Python client.
-  - [python-dotenv](https://saurabh-kumar.com/python-dotenv/): For environment variable management.
-- **AI Models**: Gemini 3 Pro (Daily) & ChatGPT-5.2 Thinking (Strategic).
+  - [python-dotenv](https://saurabh-kumar.com/python-dotenv/): Environment management.
+- **Security**: API Key-based header authentication (`X-API-Key`).
+- **AI Models**: Gemini 3 Pro (Daily Coaching) & ChatGPT-5.2 Thinking (Strategic Reviews).
+
+---
+
+## 📱 Mobile Access (PWA)
+
+PersonalAxis includes a lightweight Progressive Web App designed for quick data entry and context retrieval on the go.
+
+### API Layer
+- **Structured error handling**: Global decorator-logic to map Notion API errors to user-friendly messages.
+- **Resource Routers**: Dedicated endpoints for Context, Journals, Goals, Habits, and Reviews.
+- **Notion Bridge**: Seamlessly translates API requests into Notion database operations.
+
+### Frontend Features
+- **Daily & Review Context**: Instant access to AI-ready strings with "one-tap copy" functionality.
+- **Quick Journal**: Optimized form for daily reflections; syncs directly to Notion.
+- **Offline Reliability**: Real-time connection monitoring and graceful offline state management.
+- **Secure Access**: In-memory API key management and toast-based feedback for all operations.
 
 ---
 
@@ -129,8 +152,8 @@ REVIEWS_DB_ID=...
 - [x] **Phase 1-3**: Foundation, Notion Setup, and Orchestration Layer.
 - [x] **Phase 4**: AI Integration (JARVIS & Strategic Reviewer prompts).
 - [x] **Phase 5**: macOS Automation via `launchd`.
-- [x] **Phase 6.1-6.2**: FastAPI Backend & Cloudflare Tunnel Deployment.
-- [🟡] **Phase 6.3-6.5 (Current)**: PWA Frontend & Production Automation.
+- [x] **Phase 6.1-6.3**: FastAPI Backend, Cloudflare Tunnel & PWA Minimal UI.
+- [🟡] **Phase 6.4-6.5 (Current)**: Service Worker, Polish & Production Automation.
 - [ ] **Future**: iOS Shortcuts Integration & SMART Goal Validation Engine.
 
 ---

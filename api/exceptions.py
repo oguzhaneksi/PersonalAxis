@@ -32,26 +32,38 @@ class PersonalAxisException(Exception):
 # ============================================================================
 
 class AuthMissingError(PersonalAxisException):
-    """Raised when API key header is missing."""
+    """Raised when authentication is missing."""
     
     def __init__(self):
         super().__init__(
             code="AUTH_MISSING",
-            message="X-API-Key header is missing",
+            message="Authentication token is missing",
             user_message="Kimlik doğrulama bilgisi eksik.",
             status_code=403
         )
 
 
 class AuthInvalidError(PersonalAxisException):
-    """Raised when API key is incorrect."""
+    """Raised when credentials are incorrect."""
     
     def __init__(self):
         super().__init__(
             code="AUTH_INVALID",
-            message="Provided API key is incorrect",
+            message="Provided credentials are incorrect",
             user_message="Kimlik doğrulama başarısız.",
             status_code=403
+        )
+
+
+class AuthSessionExpiredError(PersonalAxisException):
+    """Raised when session is missing or expired."""
+
+    def __init__(self):
+        super().__init__(
+            code="AUTH_EXPIRED",
+            message="Session is missing or expired",
+            user_message="Oturum süresi doldu. Lütfen tekrar giriş yapın.",
+            status_code=401
         )
 
 

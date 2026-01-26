@@ -8,3 +8,4 @@ uvicorn[standard]==0.40.0
 pydantic==2.12.5
 python-multipart==0.0.21
 requests==2.31.0
+aiofiles==25.1.0

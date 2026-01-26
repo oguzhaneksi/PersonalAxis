@@ -3,10 +3,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from api.routers import context, journal, goals, habits, reviews
-from api.auth import verify_api_key
+from api.auth import verify_session, router as auth_router
 from api.exceptions import PersonalAxisException
-from api.auth import API_KEY_NAME
+from fastapi.staticfiles import StaticFiles
 import datetime
+import os
 
 app = FastAPI(
     title="PersonalAxis API",
@@ -19,7 +20,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Content-Type", API_KEY_NAME],
+    allow_headers=["Content-Type"],
     allow_credentials=True,
     max_age=600
 )
@@ -96,9 +97,16 @@ async def global_exception_handler(request: Request, exc: Exception):
 async def health():
     return {"status": "healthy", "version": "1.0.0"}
 
+# Auth Routes (Public)
+app.include_router(auth_router)
+
 # Protected Routes
-app.include_router(context.router, dependencies=[Depends(verify_api_key)])
-app.include_router(journal.router, dependencies=[Depends(verify_api_key)])
-app.include_router(goals.router, dependencies=[Depends(verify_api_key)])
-app.include_router(habits.router, dependencies=[Depends(verify_api_key)])
-app.include_router(reviews.router, dependencies=[Depends(verify_api_key)])
+app.include_router(context.router, dependencies=[Depends(verify_session)])
+app.include_router(journal.router, dependencies=[Depends(verify_session)])
+app.include_router(goals.router, dependencies=[Depends(verify_session)])
+app.include_router(habits.router, dependencies=[Depends(verify_session)])
+app.include_router(reviews.router, dependencies=[Depends(verify_session)])
+
+# Serve Web Frontend (PWA)
+WEB_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "web")
+app.mount("/", StaticFiles(directory=WEB_DIR, html=True), name="web")
