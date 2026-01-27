@@ -66,11 +66,11 @@
 - **DONE** 6.3.6: Implement Goals & Habits list views
 
 ### 6.4: Cookie-Based Authentication
-- **IN REVIEW** 6.4.1: Implement session management in `auth.py` (login/logout/status endpoints)
-- **IN REVIEW** 6.4.2: Create `verify_session` dependency and update `main.py` routes
-- **IN REVIEW** 6.4.3: Update `api-client.js` to use cookies (remove API key, add credentials)
-- **IN REVIEW** 6.4.4: Add login screen UI to `app.js` with auth flow handling
-- **TO DO** 6.4.5: Add `PERSONALAXIS_PASSWORD` to `.env` and test end-to-end
+- **DONE** 6.4.1: Implement session management in `auth.py` (login/logout/status endpoints)
+- **DONE** 6.4.2: Create `verify_session` dependency and update `main.py` routes
+- **DONE** 6.4.3: Update `api-client.js` to use cookies (remove API key, add credentials)
+- **DONE** 6.4.4: Add login screen UI to `app.js` with auth flow handling
+- **DONE** 6.4.5: Add `PERSONALAXIS_PASSWORD` to `.env` and test end-to-end
 
 ### 6.5: Service Worker & Polish
 - **TO DO** 6.5.1: Implement Service Worker for offline detection and caching
