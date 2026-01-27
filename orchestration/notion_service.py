@@ -25,6 +25,7 @@ class NotionClient:
             "pillars": os.getenv("PILLARS_DB_ID"),
             "lt_goals": os.getenv("LT_GOALS_DB_ID"),
             "habits": os.getenv("HABITS_DB_ID"),
+            "habit_logs": os.getenv("HABIT_LOGS_DB_ID"),
             "periodic_goals": os.getenv("PERIODIC_GOALS_DB_ID"),
             "actions": os.getenv("ACTIONS_DB_ID"),
             "journal": os.getenv("JOURNAL_DB_ID"),

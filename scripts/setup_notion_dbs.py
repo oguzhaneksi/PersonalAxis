@@ -16,8 +16,26 @@ if not NOTION_TOKEN or not PARENT_PAGE_ID:
 
 client = Client(auth=NOTION_TOKEN)
 
+def get_database_id_by_title(parent_id, title):
+    """Checks if a database with the given title exists under the parent page."""
+    try:
+        results = client.blocks.children.list(block_id=parent_id)
+        for block in results.get("results", []):
+            if block["type"] == "child_database":
+                if block["child_database"]["title"] == title:
+                    return block["id"]
+        return None
+    except Exception as e:
+        print(f"Error searching for existing database '{title}': {e}")
+        return None
+
 def create_database(parent_id, title, properties):
-    """Creates a database in Notion."""
+    """Creates a database in Notion or returns existing one."""
+    existing_id = get_database_id_by_title(parent_id, title)
+    if existing_id:
+        print(f"Database '{title}' already exists (ID: {existing_id}). Skipping creation.")
+        return existing_id
+
     print(f"Creating database: {title}...")
     try:
         response = client.databases.create(
@@ -89,7 +107,7 @@ def main():
     }
     lt_goals_id = create_database(PARENT_PAGE_ID, "Uzun Vadeli Hedefler", lt_goals_schema)
 
-    # 3. Create Alışkanlıklar & Rutinler (Habits)
+    # 3. Create Alışkanlıklar & Rutinler (Habits) - Enhanced with Phase 7 fields
     habits_schema = {
         "Ad": {"title": {}},
         "Sütun": {"relation": {"database_id": pillars_id, "dual_property": {}}},
@@ -102,6 +120,7 @@ def main():
                 ]
             }
         },
+        "Hedef Sayısı": {"number": {"format": "number"}},  # Target completions per period
         "Durum": {
             "select": {
                 "options": [
@@ -110,7 +129,9 @@ def main():
                 ]
             }
         },
-        "Son Tamamlama": {"date": {}}
+        "Tamamlama Oranı": {"number": {"format": "percent"}},  # Completion rate (updated via API)
+        "Streak": {"number": {"format": "number"}},  # Current streak (updated via API)
+        "Son Tamamlama": {"date": {}}  # Latest completion date (updated via API)
     }
     habits_id = create_database(PARENT_PAGE_ID, "Alışkanlıklar & Rutinler", habits_schema)
 
@@ -200,15 +221,26 @@ def main():
         "Yıl": {"formula": {"expression": 'formatDate(prop("Tarih"), "YYYY")'}},
         "İlgili Hedefler": {"relation": {"database_id": periodic_goals_id, "dual_property": {}}},
         "Sütunlar": {"relation": {"database_id": pillars_id, "dual_property": {}}},
-        # Checkboxes for habits - Dynamic?
-        # We can't create dynamic properties easily. We'll add a few placeholders or just rely on description
-        # Plan says "Dynamically added based on active habits". The Script can't do this *dynamically* at runtime.
-        # It's better to add them manually or have a script update the schema later.
-        # For now, we will add a few generic ones or skip.
     }
     journal_id = create_database(PARENT_PAGE_ID, "Günlük Günce", journal_schema)
 
-    # 7. Create Değerlendirme Oturumları (Review Sessions)
+    # 7. Create Alışkanlık Kayıtları (Habit Logs) - Phase 7: Historical Tracking
+    habit_logs_schema = {
+        "Tarih Kodu": {"title": {}},  # Format: "2026-01-27-HabitID"
+        "Alışkanlık": {"relation": {"database_id": habits_id, "single_property": {}}},  # One-way relation to Habits
+        "Tarih": {"date": {}},  # Completion date
+        "Tamamlandı": {"checkbox": {}},  # Completed or skipped
+        "Günlük Günce": {"relation": {"database_id": journal_id, "single_property": {}}},  # Link to journal
+        "Notlar": {"rich_text": {}},  # Optional notes
+        # Auto-calculated period fields via Notion Formulas
+        "Hafta": {"formula": {"expression": 'formatDate(prop("Tarih"), "YYYY-[W]WW")'}},
+        "Ay": {"formula": {"expression": 'formatDate(prop("Tarih"), "YYYY-MM")'}},
+        "Çeyrek": {"formula": {"expression": 'formatDate(prop("Tarih"), "YYYY-[Q]Q")'}},
+        "Yıl": {"formula": {"expression": 'formatDate(prop("Tarih"), "YYYY")'}}
+    }
+    habit_logs_id = create_database(PARENT_PAGE_ID, "Alışkanlık Kayıtları", habit_logs_schema)
+
+    # 8. Create Değerlendirme Oturumları (Review Sessions)
     reviews_schema = {
         "Dönem": {"title": {}},
         "Değerlendirme Tipi": {
@@ -233,6 +265,7 @@ def main():
     print(f"PILLARS_DB_ID={pillars_id}")
     print(f"LT_GOALS_DB_ID={lt_goals_id}")
     print(f"HABITS_DB_ID={habits_id}")
+    print(f"HABIT_LOGS_DB_ID={habit_logs_id}")
     print(f"PERIODIC_GOALS_DB_ID={periodic_goals_id}")
     print(f"ACTIONS_DB_ID={actions_id}")
     print(f"JOURNAL_DB_ID={journal_id}")

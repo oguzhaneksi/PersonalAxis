@@ -24,6 +24,8 @@ habit_logs_schema = {
     # Auto-calculated period fields via Notion Formulas
     "Hafta": {"formula": {"expression": "formatDate(prop(\"Tarih\"), \"YYYY-[W]WW\")"}},
     "Ay": {"formula": {"expression": "formatDate(prop(\"Tarih\"), \"YYYY-MM\")"}},
+    "Çeyrek": {"formula": {"expression": "formatDate(prop(\"Tarih\"), \"YYYY-[Q]Q\")"}},
+    "Yıl": {"formula": {"expression": "formatDate(prop(\"Tarih\"), \"YYYY\")"}},
 }
 ```
 
@@ -59,7 +61,7 @@ habits_schema = {
 | 7.3.3 | Create `/api/habits/stats` endpoint (GET) | M |
 | 7.4.1 | Update PWA habits view with completion toggle | M |
 | 7.4.2 | Add habit history visualization (streak, calendar) | L |
-| 7.4.3 | Integrate habit logging into Quick Journal flow | M |
+| 7.4.3 | Integrate habit logging into Daily Journal flow | M |
 | 7.5.1 | Update AI prompts with habit analytics context | S |
 
 ## Benefits

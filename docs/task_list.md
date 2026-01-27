@@ -92,9 +92,9 @@
 > **Detailed Plan**: [phase_7_habits.md](phase_7_habits.md)
 
 ### 7.1: Database Schema Updates
-- **IN REVIEW** 7.1.1: Design and finalize Habit Logs (Alışkanlık Kayıtları) schema
-- **TO DO** 7.1.2: Update `setup_notion_dbs.py` with Habit Logs database
-- **TO DO** 7.1.3: Create migration script for existing habits data
+- **DONE** 7.1.1: Design and finalize Habit Logs (Alışkanlık Kayıtları) schema
+- **DONE** 7.1.2: Update `setup_notion_dbs.py` with Habit Logs database
+- **DONE** 7.1.3: Create migration script for existing habits data
 
 ### 7.2: Orchestration Layer Updates
 - **TO DO** 7.2.1: Add `HabitLogService` to orchestration layer
@@ -111,7 +111,7 @@
 ### 7.4: PWA Updates
 - **TO DO** 7.4.1: Update habits view with completion toggle (daily check-in)
 - **TO DO** 7.4.2: Add habit history visualization (streak counter, mini calendar)
-- **TO DO** 7.4.3: Integrate habit logging into Quick Journal flow
+- **TO DO** 7.4.3: Integrate habit logging into Daily Journal flow
 
 ### 7.5: AI Integration
 - **TO DO** 7.5.1: Update AI prompts with habit analytics context
