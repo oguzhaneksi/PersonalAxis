@@ -270,8 +270,10 @@ class NotionClient:
         """
         journal_filter = {
             "property": period_field,
-            "rich_text": {
-                "equals": period_value
+            "formula": {
+                "string": {
+                    "equals": period_value
+                }
             }
         }
         
@@ -335,10 +337,6 @@ class NotionClient:
         properties = {
             "Tarih Kodu": {"title": [{"text": {"content": title}}]},
             "Tarih": {"date": {"start": date_str}},
-            "Hafta": {"rich_text": [{"text": {"content": self._calculate_week(date_str)}}]},
-            "Ay": {"rich_text": [{"text": {"content": self._calculate_month(date_str)}}]},
-            "Çeyrek": {"rich_text": [{"text": {"content": self._calculate_quarter(date_str)}}]},
-            "Yıl": {"rich_text": [{"text": {"content": self._calculate_year(date_str)}}]},
         }
         
         # We could add emotions as multi-select if the property existed

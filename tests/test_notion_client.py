@@ -95,3 +95,49 @@ def test_parse_blocks_to_markdown():
     assert "- [x] Task" in md
     assert "> Quote" in md
     assert "> 💡 Callout" in md
+
+@patch("orchestration.notion_service.Client")
+def test_create_journal_entry(MockNotion, mock_env):
+    mock_instance = MockNotion.return_value
+    mock_instance.pages.create.return_value = {"id": "new_journal_id"}
+    
+    client = NotionClient()
+    journal_id = client.create_journal_entry(
+        date_str="2026-01-27",
+        title="2026-01-27",
+        content="Test content",
+        emotions=["Happy"],
+        insights="Life is good"
+    )
+    
+    assert journal_id == "new_journal_id"
+    mock_instance.pages.create.assert_called_once()
+    args, kwargs = mock_instance.pages.create.call_args
+    properties = kwargs["properties"]
+    
+    # Check that manual period fields are NOT in properties
+    assert "Hafta" not in properties
+    assert "Ay" not in properties
+    assert "Çeyrek" not in properties
+    assert "Yıl" not in properties
+    
+    # Check required fields
+    assert properties["Tarih Kodu"]["title"][0]["text"]["content"] == "2026-01-27"
+    assert properties["Tarih"]["date"]["start"] == "2026-01-27"
+
+@patch("orchestration.notion_service.Client")
+def test_fetch_journals_by_period(MockNotion, mock_env):
+    mock_instance = MockNotion.return_value
+    mock_instance.databases.query.return_value = {"results": [], "has_more": False}
+    
+    client = NotionClient()
+    client.fetch_journals_by_period("Hafta", "2026-W04")
+    
+    mock_instance.databases.query.assert_called_once()
+    args, kwargs = mock_instance.databases.query.call_args
+    query_filter = kwargs["filter"]
+    
+    # Check that it uses formula filter
+    assert "formula" in query_filter
+    assert query_filter["formula"]["string"]["equals"] == "2026-W04"
+    assert "rich_text" not in query_filter

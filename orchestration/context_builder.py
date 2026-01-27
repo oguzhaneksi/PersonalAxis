@@ -22,6 +22,11 @@ class ContextBuilder:
                 return str(prop["number"]) if prop["number"] is not None else "0"
             if prop["type"] == "date":
                 return prop["date"]["start"] if prop["date"] else ""
+            if prop["type"] == "formula":
+                formula_data = prop.get("formula", {})
+                f_type = formula_data.get("type")
+                if f_type:
+                    return str(formula_data.get(f_type, ""))
             return ""
         except (KeyError, IndexError):
             return ""

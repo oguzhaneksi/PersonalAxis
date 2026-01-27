@@ -100,6 +100,8 @@
 - **TO DO** 7.2.1: Add `HabitLogService` to orchestration layer
 - **TO DO** 7.2.2: Update `NotionService` with habit log CRUD operations
 - **TO DO** 7.2.3: Update context builder to include habit statistics (streaks, rates)
+- **TO DO** 7.2.4: Implement habit stats calculation service
+- **TO DO** 7.2.5: Add background job to refresh habit stats daily
 
 ### 7.3: API Endpoints
 - **TO DO** 7.3.1: Create `POST /api/habits/log` endpoint (log completion)

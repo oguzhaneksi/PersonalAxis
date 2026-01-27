@@ -15,15 +15,15 @@ Create a new **"Alışkanlık Kayıtları" (Habit Logs)** database that records 
 
 ```python
 habit_logs_schema = {
-    "Tarih Kodu": {"title": {}},        # Format: "2026-01-27-HabitName"
-    "Alışkanlık": {"relation": {}},      # Relation to Habits DB
+    "Tarih Kodu": {"title": {}},        # Format: "2026-01-27-HabitID"
+    "Alışkanlık": {"relation": {}},      # Relation to Habits DB (One-way)
     "Tarih": {"date": {}},               # Completion date
     "Tamamlandı": {"checkbox": {}},      # Completed or skipped
     "Günlük Günce": {"relation": {}},    # Optional link to journal
     "Notlar": {"rich_text": {}},         # Optional notes
-    # Auto-calculated period fields for rollups
-    "Hafta": {"rich_text": {}},          # Format: 2026-W04
-    "Ay": {"rich_text": {}},             # Format: 2026-01
+    # Auto-calculated period fields via Notion Formulas
+    "Hafta": {"formula": {"expression": "formatDate(prop(\"Tarih\"), \"YYYY-[W]WW\")"}},
+    "Ay": {"formula": {"expression": "formatDate(prop(\"Tarih\"), \"YYYY-MM\")"}},
 }
 ```
 
@@ -35,11 +35,10 @@ habits_schema = {
     "Sütun": {"relation": {}},
     "Frekans": {"select": {}},           # Günlük, Haftalık, Aylık
     "Hedef Sayısı": {"number": {}},      # Target completions per period
-    "Durum": {"select": {}},
-    "Kayıtlar": {"relation": {}},        # Relation to Habit Logs (dual)
-    "Tamamlama Oranı": {"rollup": {}},   # Rollup: % completed this period
-    "Streak": {"formula": {}},           # Current streak calculation
-    "Son Tamamlama": {"rollup": {}},     # Rollup: latest completion date
+    "Durum": {"select": {}},             # Aktif, Beklemede
+    "Tamamlama Oranı": {"number": {}},   # % calculated and updated via API
+    "Streak": {"number": {}},             # Current streak updated via API
+    "Son Tamamlama": {"date": {}},        # Latest completion date updated via API
 }
 ```
 
@@ -53,6 +52,8 @@ habits_schema = {
 | 7.2.1 | Add `HabitLogService` to orchestration layer | M |
 | 7.2.2 | Update `NotionService` with habit log CRUD operations | M |
 | 7.2.3 | Update context builder to include habit statistics | M |
+| 7.2.4 | Implement habit stats calculation service | M |
+| 7.2.5 | Add background job to refresh habit stats daily | S |
 | 7.3.1 | Create `/api/habits/log` endpoint (POST) | S |
 | 7.3.2 | Create `/api/habits/{id}/history` endpoint (GET) | S |
 | 7.3.3 | Create `/api/habits/stats` endpoint (GET) | M |

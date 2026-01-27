@@ -194,10 +194,10 @@ def main():
     journal_schema = {
         "Tarih Kodu": {"title": {}}, 
         "Tarih": {"date": {}},
-        "Hafta": {"rich_text": {}},  # Format: 2026-W02
-        "Ay": {"rich_text": {}},      # Format: 2026-01
-        "Çeyrek": {"rich_text": {}},  # Format: 2026-Q3
-        "Yıl": {"rich_text": {}},     # Format: 2026
+        "Hafta": {"formula": {"expression": 'formatDate(prop("Tarih"), "YYYY-[W]WW")'}},
+        "Ay": {"formula": {"expression": 'formatDate(prop("Tarih"), "YYYY-MM")'}},
+        "Çeyrek": {"formula": {"expression": 'formatDate(prop("Tarih"), "YYYY-[Q]Q")'}},
+        "Yıl": {"formula": {"expression": 'formatDate(prop("Tarih"), "YYYY")'}},
         "İlgili Hedefler": {"relation": {"database_id": periodic_goals_id, "dual_property": {}}},
         "Sütunlar": {"relation": {"database_id": pillars_id, "dual_property": {}}},
         # Checkboxes for habits - Dynamic?
