@@ -5,6 +5,7 @@
 - **IN PROGRESS**: Task is actively being worked on. (AI: Continues writing code, researching, or writing tests)
 - **IN REVIEW**: Coding complete; awaiting human developer review, testing, or feedback. (AI: Can make corrections based on feedback)
 - **DONE**: Task fully tested, approved, and marked as completed. **Note: Transition from IN REVIEW to DONE strictly requires human approval.** (AI: No further action needed)
+- **PARKED**: Task suspended or deprioritized for future consideration.
 
 ---
 
@@ -73,13 +74,13 @@
 - **DONE** 6.4.5: Add `PERSONALAXIS_PASSWORD` to `.env` and test end-to-end
 
 ### 6.5: Service Worker & Polish
-- **TO DO** 6.5.1: Implement Service Worker for offline detection and caching
-- **TO DO** 6.5.2: Add "Add to Home Screen" instructions and icons
-- **TO DO** 6.5.3: Add haptic feedback and loading skeletons
-- **TO DO** 6.5.4: Final cross-device testing and performance audit
+- **PARKED** 6.5.1: Implement Service Worker for offline detection and caching
+- **PARKED** 6.5.2: Add "Add to Home Screen" instructions and icons
+- **PARKED** 6.5.3: Add haptic feedback and loading skeletons
+- **PARKED** 6.5.4: Final cross-device testing and performance audit
 
 ### 6.6: Production & Automation
-- **TO DO** 6.6.1: Create launchd plists for API server and Tunnel autostart
-- **TO DO** 6.6.2: Setup centralized logging for API and Tunnel
-- **TO DO** 6.6.3: Generate OpenAPI/Swagger documentation
-- **TO DO** 6.6.4: Create Mobile Setup & Troubleshooting guide
+- **PARKED** 6.6.1: Create launchd plists for API server and Tunnel autostart
+- **PARKED** 6.6.2: Setup centralized logging for API and Tunnel
+- **PARKED** 6.6.3: Generate OpenAPI/Swagger documentation
+- **PARKED** 6.6.4: Create Mobile Setup & Troubleshooting guide
