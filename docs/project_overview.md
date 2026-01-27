@@ -72,9 +72,10 @@ A lightweight Mobile PWA for on-the-go interaction:
 - **Backend Core**: Python 3.9+, Notion SDK
 - **API Framework**: FastAPI, Pydantic
 - **Frontend**: Vanilla JS, HTML5, CSS3 (Mobile PWA)
-- **Deployment & Networking**: Cloudflare Tunnel (Secure Tunneling), Cloudflare Access (Zero-Trust)
+- **Deployment**: Railway (Cloud PaaS), Docker
 - **AI Engines**: Gemini 3.0 Pro (JARVIS), ChatGPT 5.2 (Reviewer)
-- **Security**: Cookie-based Session Auth + API Keys
+- **RAG Stack** (Phase 9): Pinecone (Vector DB), OpenAI Embeddings, LangChain
+- **Security**: Cookie-based Session Auth
 
 ## Language Conventions
 
@@ -93,7 +94,8 @@ A lightweight Mobile PWA for on-the-go interaction:
 
 ## Project Status
 
-Currently finishing **Phase 6: Mobile Access**
+Currently finishing **Phase 6: Mobile Access**, with Phases 7-9 planned.
+
 - Phase 1 (Foundation & Planning) ✅ Complete
 - Phase 2 (Notion Database Setup) ✅ Complete
 - Phase 3 (Orchestration Layer) ✅ Complete
@@ -103,8 +105,49 @@ Currently finishing **Phase 6: Mobile Access**
   - [x] System-wide macOS Notifications
   - [x] Advanced CLI Commands (`quick-journal`, `goal-status`)
   - [ ] SMART Goal Validation (parked — deferred to future phase)
-- Phase 6 (Mobile Access & API) 🔄 In Progress
+- Phase 6 (Mobile Access & API) ✅ Complete (Core)
   - [x] FastAPI Backend & Cookie Auth
   - [x] Cloudflare Tunnel & Access (Zero Trust)
   - [x] Mobile PWA (Core features)
   - [ ] Offline Caching & Polish (parked)
+- Phase 7 (Enhanced Habit Tracking) 📋 Planned
+  - [ ] Habit Logs database for historical tracking
+  - [ ] Streak and completion rate calculations
+  - [ ] Habit analytics API and PWA integration
+- Phase 8 (Cloud Deployment) 📋 Planned
+  - [ ] Docker containerization
+  - [ ] Railway/Render deployment
+  - [ ] Deprecate local Cloudflare Tunnel
+- Phase 9 (RAG Integration) 📋 Planned
+  - [ ] Pinecone vector database setup
+  - [ ] Historical data embedding pipeline
+  - [ ] Semantic retrieval for AI context enhancement
+
+## Upcoming Architecture Changes
+
+### Phase 7: Habit Tracking Redesign
+Current limitation: Only "Last Completion" is tracked, preventing historical analysis.
+
+**Solution**: New "Alışkanlık Kayıtları" (Habit Logs) database that records each completion, enabling:
+- Historical completion patterns
+- Streak tracking
+- Completion rate analytics
+- AI-powered habit insights
+
+### Phase 8: Cloud-First Deployment
+Current limitation: Cloudflare Tunnel requires local Mac to always be running.
+
+**Solution**: Deploy to Railway/Render for:
+- 24/7 availability (99.9% uptime)
+- No local dependencies
+- Auto-scaling and managed infrastructure
+- Professional production deployment
+
+### Phase 9: RAG for Long-Term Memory
+Current limitation: AI context limited to real-time data and fixed token windows.
+
+**Solution**: Vector database (Pinecone) + embeddings for:
+- Semantic search across all historical data
+- Relevant past references in AI context
+- Pattern recognition across months/years
+- Truly personalized, history-aware coaching

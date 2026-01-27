@@ -152,9 +152,10 @@ REVIEWS_DB_ID=...
 - [x] **Phase 1-3**: Foundation, Notion Setup, and Orchestration Layer.
 - [x] **Phase 4**: AI Integration (JARVIS & Strategic Reviewer prompts).
 - [x] **Phase 5**: macOS Automation via `launchd`.
-- [x] **Phase 6.1-6.4**: FastAPI Backend, Cloudflare Tunnel & Cookie-based Auth.
-- [⏸️] **Phase 6.5-6.6**: Service Worker, Polish & Automation (Parked).
-- [🚀] **Next**: New Strategic Roadmap incoming...
+- [x] **Phase 6**: FastAPI Backend, Mobile PWA & Cookie-based Auth.
+- [📋] **Phase 7**: Enhanced Habit Tracking (Habit Logs DB, streaks, analytics).
+- [📋] **Phase 8**: Cloud Deployment (Docker + Railway/Render).
+- [📋] **Phase 9**: RAG Integration (Pinecone + LangChain for long-term memory).
 
 ---
 

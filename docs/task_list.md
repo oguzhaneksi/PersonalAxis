@@ -84,3 +84,100 @@
 - **PARKED** 6.6.2: Setup centralized logging for API and Tunnel
 - **PARKED** 6.6.3: Generate OpenAPI/Swagger documentation
 - **PARKED** 6.6.4: Create Mobile Setup & Troubleshooting guide
+
+---
+
+## Phase 7: Enhanced Habit Tracking System
+> **Goal**: Enable historical tracking of habit completions with analytics and streaks
+> **Detailed Plan**: [phase_7_habits.md](phase_7_habits.md)
+
+### 7.1: Database Schema Updates
+- **IN REVIEW** 7.1.1: Design and finalize Habit Logs (Alışkanlık Kayıtları) schema
+- **TO DO** 7.1.2: Update `setup_notion_dbs.py` with Habit Logs database
+- **TO DO** 7.1.3: Create migration script for existing habits data
+
+### 7.2: Orchestration Layer Updates
+- **TO DO** 7.2.1: Add `HabitLogService` to orchestration layer
+- **TO DO** 7.2.2: Update `NotionService` with habit log CRUD operations
+- **TO DO** 7.2.3: Update context builder to include habit statistics (streaks, rates)
+
+### 7.3: API Endpoints
+- **TO DO** 7.3.1: Create `POST /api/habits/log` endpoint (log completion)
+- **TO DO** 7.3.2: Create `GET /api/habits/{id}/history` endpoint (fetch history)
+- **TO DO** 7.3.3: Create `GET /api/habits/stats` endpoint (analytics summary)
+
+### 7.4: PWA Updates
+- **TO DO** 7.4.1: Update habits view with completion toggle (daily check-in)
+- **TO DO** 7.4.2: Add habit history visualization (streak counter, mini calendar)
+- **TO DO** 7.4.3: Integrate habit logging into Quick Journal flow
+
+### 7.5: AI Integration
+- **TO DO** 7.5.1: Update AI prompts with habit analytics context
+
+---
+
+## Phase 8: Cloud Deployment (Railway/Render)
+> **Goal**: Deploy backend to cloud for 24/7 availability without local Mac dependency
+> **Detailed Plan**: [phase_8_deployment.md](phase_8_deployment.md)
+
+### 8.1: Containerization
+- **TO DO** 8.1.1: Create `Dockerfile` for FastAPI application
+- **TO DO** 8.1.2: Create `docker-compose.yml` for local testing
+- **TO DO** 8.1.3: Create `.dockerignore` file
+- **TO DO** 8.1.4: Add health check endpoint (`GET /health`)
+
+### 8.2: Railway Setup
+- **TO DO** 8.2.1: Create Railway account and project
+- **TO DO** 8.2.2: Configure environment variables in Railway dashboard
+- **TO DO** 8.2.3: Setup GitHub integration for automatic deployments
+- **TO DO** 8.2.4: Configure custom domain (optional)
+
+### 8.3: CI/CD & Configuration
+- **TO DO** 8.3.1: Create `railway.toml` configuration file
+- **TO DO** 8.3.2: Setup staging/production environments
+- **TO DO** 8.3.3: Configure auto-restart policies and logging
+
+### 8.4: Migration & Testing
+- **TO DO** 8.4.1: Update PWA API base URL configuration (env-based)
+- **TO DO** 8.4.2: Test all endpoints on cloud deployment
+- **TO DO** 8.4.3: Deprecate Cloudflare Tunnel local setup
+
+### 8.5: Documentation
+- **TO DO** 8.5.1: Update deployment documentation for Railway
+- **TO DO** 8.5.2: Create cloud troubleshooting guide
+
+---
+
+## Phase 9: RAG Integration
+> **Goal**: Add Retrieval-Augmented Generation for history-aware AI coaching
+> **Detailed Plan**: [phase_9_rag.md](phase_9_rag.md)
+
+### 9.1: Infrastructure Setup
+- **TO DO** 9.1.1: Setup Pinecone account and create index
+- **TO DO** 9.1.2: Add RAG dependencies to `requirements.txt` (langchain, pinecone, openai)
+- **TO DO** 9.1.3: Create `orchestration/rag_service.py` module
+
+### 9.2: Document Processing
+- **TO DO** 9.2.1: Design document schema with metadata fields
+- **TO DO** 9.2.2: Implement chunking strategies per content type (journal, review, goal)
+- **TO DO** 9.2.3: Create embedding utilities (OpenAI text-embedding-3-small)
+
+### 9.3: Sync Pipeline
+- **TO DO** 9.3.1: Build initial sync script (full historical embedding)
+- **TO DO** 9.3.2: Implement incremental sync (new entries only)
+- **TO DO** 9.3.3: Add sync to automation (daily cron job)
+
+### 9.4: Retrieval Engine
+- **TO DO** 9.4.1: Create retrieval query builder
+- **TO DO** 9.4.2: Implement similarity search with metadata filters
+- **TO DO** 9.4.3: Add re-ranking for relevance optimization
+
+### 9.5: Context Enhancement
+- **TO DO** 9.5.1: Integrate RAG into `context_builder.py`
+- **TO DO** 9.5.2: Add "relevant history" section to daily context
+- **TO DO** 9.5.3: Add "similar past reviews" section to review context
+
+### 9.6: API & UI
+- **TO DO** 9.6.1: Create `GET /api/rag/search` endpoint
+- **TO DO** 9.6.2: Update AI prompts with RAG usage instructions
+- **TO DO** 9.6.3: Add semantic search interface to PWA
