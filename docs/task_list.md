@@ -97,10 +97,10 @@
 - **DONE** 7.1.3: Create migration script for existing habits data
 
 ### 7.2: Orchestration Layer Updates
-- **TO DO** 7.2.1: Add `HabitLogService` to orchestration layer
-- **TO DO** 7.2.2: Update `NotionService` with habit log CRUD operations
+- **DONE** 7.2.1: Add `HabitLogService` to orchestration layer
+- **DONE** 7.2.2: Update `NotionService` with habit log CRUD operations
 - **TO DO** 7.2.3: Update context builder to include habit statistics (streaks, rates)
-- **TO DO** 7.2.4: Implement habit stats calculation service
+- **DONE** 7.2.4: Implement habit stats calculation service
 - **TO DO** 7.2.5: Add background job to refresh habit stats daily
 
 ### 7.3: API Endpoints

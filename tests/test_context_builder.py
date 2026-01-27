@@ -1,20 +1,19 @@
 import pytest
 from orchestration.context_builder import ContextBuilder
+from orchestration.util import safe_get_text
 
 def test_safe_get_text():
-    builder = ContextBuilder()
-    
     # Test title
     prop_title = {"type": "title", "title": [{"plain_text": "Hello"}]}
-    assert builder._safe_get_text(prop_title) == "Hello"
+    assert safe_get_text(prop_title) == "Hello"
     
     # Test select
     prop_select = {"type": "select", "select": {"name": "Aktif"}}
-    assert builder._safe_get_text(prop_select) == "Aktif"
+    assert safe_get_text(prop_select) == "Aktif"
     
     # Test number
     prop_number = {"type": "number", "number": 0.5}
-    assert builder._safe_get_text(prop_number) == "0.5"
+    assert safe_get_text(prop_number) == "0.5"
 
 def test_build_daily_context_empty():
     builder = ContextBuilder()

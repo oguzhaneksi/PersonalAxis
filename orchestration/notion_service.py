@@ -516,3 +516,193 @@ class NotionClient:
         if results:
             return results[0]
         return None
+
+    # ==================== Habit Log Operations (Phase 7.2) ====================
+
+    def create_habit_log(
+        self, 
+        habit_id: str, 
+        date_str: str, 
+        completed: bool, 
+        notes: str = "", 
+        journal_id: Optional[str] = None
+    ) -> str:
+        """
+        Create a new habit log entry in Notion.
+        
+        Args:
+            habit_id: ID of the habit being logged
+            date_str: ISO date string (YYYY-MM-DD)
+            completed: Whether the habit was completed (True) or skipped (False)
+            notes: Optional notes about the completion
+            journal_id: Optional link to the daily journal entry
+            
+        Returns:
+            ID of the created habit log page, or empty string on error.
+        """
+        if not self.db_ids["habit_logs"]:
+            print("Error: Habit Logs DB ID missing")
+            return ""
+
+        # Generate Tarih Kodu: "2026-01-27-HabitID"
+        tarih_kodu = f"{date_str}-{habit_id[:8]}"
+
+        properties = {
+            "Tarih Kodu": {"title": [{"text": {"content": tarih_kodu}}]},
+            "Alışkanlık": {"relation": [{"id": habit_id}]},
+            "Tarih": {"date": {"start": date_str}},
+            "Tamamlandı": {"checkbox": completed},
+        }
+        
+        if notes:
+            properties["Notlar"] = {"rich_text": [{"text": {"content": notes[:2000]}}]}
+            
+        if journal_id:
+            properties["Günlük Günce"] = {"relation": [{"id": journal_id}]}
+
+        try:
+            response = self.client.pages.create(
+                parent={"database_id": self.db_ids["habit_logs"]},
+                properties=properties
+            )
+            return response["id"]
+        except Exception as e:
+            print(f"Error creating habit log: {e}")
+            return ""
+
+    def fetch_habit_logs(
+        self, 
+        habit_id: Optional[str] = None, 
+        start_date: Optional[str] = None, 
+        end_date: Optional[str] = None
+    ) -> List[Dict]:
+        """
+        Fetch habit logs with optional filters.
+        
+        Args:
+            habit_id: Filter by specific habit ID
+            start_date: ISO date string for range start (inclusive)
+            end_date: ISO date string for range end (inclusive)
+            
+        Returns:
+            List of habit log objects sorted by date descending.
+        """
+        if not self.db_ids["habit_logs"]:
+            print("Error: Habit Logs DB ID missing")
+            return []
+
+        filters = []
+        
+        if habit_id:
+            filters.append({
+                "property": "Alışkanlık",
+                "relation": {
+                    "contains": habit_id
+                }
+            })
+            
+        if start_date:
+            filters.append({
+                "property": "Tarih",
+                "date": {
+                    "on_or_after": start_date
+                }
+            })
+            
+        if end_date:
+            filters.append({
+                "property": "Tarih",
+                "date": {
+                    "on_or_before": end_date
+                }
+            })
+        
+        query_filter = None
+        if filters:
+            query_filter = {"and": filters} if len(filters) > 1 else filters[0]
+        
+        try:
+            response = self.client.databases.query(
+                database_id=self.db_ids["habit_logs"],
+                filter=query_filter,
+                sorts=[{"property": "Tarih", "direction": "descending"}]
+            )
+            return response.get("results", [])
+        except Exception as e:
+            print(f"Error fetching habit logs: {e}")
+            return []
+
+    def fetch_habit_logs_by_period(self, period_field: str, period_value: str) -> List[Dict]:
+        """
+        Fetch habit logs filtered by period (Hafta, Ay, Çeyrek, Yıl).
+        
+        Args:
+            period_field: "Hafta", "Ay", "Çeyrek", or "Yıl"
+            period_value: e.g., "2026-W02", "2026-01", "2026-Q1", "2026"
+            
+        Returns:
+            List of habit log objects matching the period.
+        """
+        if not self.db_ids["habit_logs"]:
+            return []
+
+        log_filter = {
+            "property": period_field,
+            "formula": {
+                "string": {
+                    "equals": period_value
+                }
+            }
+        }
+        
+        try:
+            response = self.client.databases.query(
+                database_id=self.db_ids["habit_logs"],
+                filter=log_filter,
+                sorts=[{"property": "Tarih", "direction": "descending"}]
+            )
+            return response.get("results", [])
+        except Exception as e:
+            print(f"Error fetching habit logs by {period_field}={period_value}: {e}")
+            return []
+
+    def update_habit(
+        self, 
+        habit_id: str, 
+        completion_rate: Optional[float] = None, 
+        streak: Optional[int] = None, 
+        last_completion: Optional[str] = None
+    ) -> bool:
+        """
+        Update a habit's calculated statistics.
+        
+        Args:
+            habit_id: ID of the habit to update
+            completion_rate: Completion rate as decimal (0-1) for Notion percent field
+            streak: Current consecutive completion streak
+            last_completion: ISO date string of last completion
+            
+        Returns:
+            True if successful, False otherwise.
+        """
+        properties = {}
+        
+        if completion_rate is not None:
+            # Store as decimal (0-1) since Notion number properties
+            properties["Tamamlama Oranı"] = {"number": completion_rate}
+            
+        if streak is not None:
+            properties["Streak"] = {"number": streak}
+            
+        if last_completion:
+            properties["Son Tamamlama"] = {"date": {"start": last_completion}}
+
+        if not properties:
+            return True  # Nothing to update
+
+        try:
+            self.client.pages.update(page_id=habit_id, properties=properties)
+            return True
+        except Exception as e:
+            print(f"Error updating habit {habit_id}: {e}")
+            return False
