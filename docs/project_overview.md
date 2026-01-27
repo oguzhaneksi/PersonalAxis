@@ -40,36 +40,41 @@ Phase 4 implemented: JARVIS (Gemini) and the Strategic Reviewer (ChatGPT) are in
 - SMART goal validation
 - Model: ChatGPT 5.2 Thinking
 
-### 3. Orchestration Layer (Python)
+### 3. Orchestration Layer & API (Python)
 
-A lightweight CLI service (Click-based) that:
-- Fetches context from Notion
-- Generates formatted markdown for AI injection
-- Saves AI insights back to Notion
-- Manages habit tracking and journal entries
-- Triggers periodic reviews
+A unified backend providing both a CLI (Click) and a REST API (FastAPI):
+- **Notion Integration**: Fetches context and saves insights back to the "Single Source of Truth".
+- **Context Generation**: Processes complex database relations into formatted markdown for AI.
+- **Automation**: `launchd` scripts for periodic context preparation and macOS notifications.
+- **Security**: Multi-layer protection with Cloudflare Access and Cookie-based Auth.
+
+### 4. PWA Frontend (Mobile Access)
+
+A lightweight Mobile PWA for on-the-go interaction:
+- **Mobile Workflow**: Quick access to Daily/Review context for AI injection.
+- **Journaling**: Frictionless mobile interface for thought capture (Quick Journal).
+- **Tracking**: Real-time habit tracking and goal progress monitoring.
 
 ## Workflow
 
-### Daily Flow
-1. Run `personalaxis daily-context` → generates context.md
-2. Upload context to Gemini (JARVIS)
-3. Conduct coaching session with AI
-4. Run `personalaxis save-journal` → saves to Notion
+### Daily Flow (Desktop & Mobile)
+1. **Generate Context**: Run `personalaxis daily-context` or use the PWA "Daily Context" view.
+2. **AI Coaching**: Upload/Paste context to Gemini (JARVIS Persona).
+3. **Save Insights**: Run `personalaxis save-journal` or use the PWA to sync reflections to Notion.
 
 ### Periodic Review Flow
-1. Run `personalaxis review-context --type weekly` → generates review context
-2. Upload to ChatGPT (Strategic Reviewer)
-3. Conduct strategic review
-4. Run `personalaxis save-review --type weekly` → updates Notion
+1. **Prepare**: Run `personalaxis review-context --type weekly/monthly` (or use PWA).
+2. **Review**: Conduct strategic review with ChatGPT (Strategic Reviewer Persona).
+3. **Commit**: Save the session outcome back to the "Değerlendirme Oturumları" database in Notion.
 
 ## Technology Stack
 
-- **Backend**: Python 3.9+
-- **Notion SDK**: notion-client
-- **CLI Framework**: Click (click)
-- **AI Platforms**: Gemini (web UI), ChatGPT (web UI)
-- **Environment**: Local execution for privacy
+- **Backend Core**: Python 3.9+, Notion SDK
+- **API Framework**: FastAPI, Pydantic
+- **Frontend**: Vanilla JS, HTML5, CSS3 (Mobile PWA)
+- **Deployment & Networking**: Cloudflare Tunnel (Secure Tunneling), Cloudflare Access (Zero-Trust)
+- **AI Engines**: Gemini 3.0 Pro (JARVIS), ChatGPT 5.2 (Reviewer)
+- **Security**: Cookie-based Session Auth + API Keys
 
 ## Language Conventions
 
@@ -88,12 +93,18 @@ A lightweight CLI service (Click-based) that:
 
 ## Project Status
 
-Currently in **Phase 5: Automation & Workflows**
+Currently finishing **Phase 6: Mobile Access**
 - Phase 1 (Foundation & Planning) ✅ Complete
 - Phase 2 (Notion Database Setup) ✅ Complete
 - Phase 3 (Orchestration Layer) ✅ Complete
 - Phase 4 (AI Integration) ✅ Complete
-- Phase 5 (Automation) 🔄 In Progress
+- Phase 5 (Automation) ✅ Complete
   - [x] Periodic Context Generation via `launchd`
-  - [ ] SMART Goal Validation (parked — deferred to a later phase)
-  - [x] Advanced CLI Commands
+  - [x] System-wide macOS Notifications
+  - [x] Advanced CLI Commands (`quick-journal`, `goal-status`)
+  - [ ] SMART Goal Validation (parked — deferred to future phase)
+- Phase 6 (Mobile Access & API) 🔄 In Progress
+  - [x] FastAPI Backend & Cookie Auth
+  - [x] Cloudflare Tunnel & Access (Zero Trust)
+  - [x] Mobile PWA (Core features)
+  - [ ] Offline Caching & Polish (parked)
