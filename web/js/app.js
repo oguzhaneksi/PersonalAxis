@@ -768,30 +768,24 @@ Screens.habits = {
 
     Utils.setLoading(true);
     try {
-      await api.logHabitCompletion(habit.id, today, newStatus, null, null);
+      const response = await api.logHabitCompletion(habit.id, today, newStatus, null, null);
       
       // Update local state
       habit.completed_today = newStatus;
-      if (newStatus) {
-        const todayDate = new Date();
-        const yesterdayDate = new Date(todayDate);
-        yesterdayDate.setDate(todayDate.getDate() - 1);
-        const yesterday = yesterdayDate.toISOString().split('T')[0];
 
-        if (habit.last_completed_date === yesterday) {
-          // Yesterday was the last completion; continue the streak
-          habit.streak = (habit.streak || 0) + 1;
-        } else if (habit.streak && habit.streak > 0) {
-          // We already have an existing non-zero streak; keep it continuous
-          habit.streak = habit.streak + 1;
-        } else {
-          // No existing streak; start a new one
-          habit.streak = 1;
+      // Update stats from API response
+      if (response.data) {
+        if (typeof response.data.streak === 'number') {
+          habit.streak = response.data.streak;
         }
-        habit.last_completed_date = today;
-      } else {
-        // Do not modify the streak when unmarking today's completion here;
-        // the backend or a subsequent refresh should provide the correct value.
+        if (typeof response.data.completion_rate === 'number') {
+          habit.completion_rate = response.data.completion_rate;
+        }
+      }
+      
+      if (newStatus) {
+        // Update last completion date to today
+        habit.last_completed = today;
       }
       
       // Re-render
