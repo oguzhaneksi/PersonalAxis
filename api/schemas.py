@@ -78,3 +78,12 @@ class SaveReviewRequest(BaseModel):
         if v not in ['weekly', 'monthly', 'quarterly', 'yearly']:
             raise ValueError(f"Invalid review type: {v}")
         return v
+
+# --- Habit Models (Phase 7.3) ---
+
+class HabitLogRequest(BaseModel):
+    habit_id: str = Field(..., min_length=1, description="ID of the habit to log")
+    date: dt_date = Field(..., description="Date of completion (YYYY-MM-DD)")
+    completed: bool = Field(..., description="True if completed, False if skipped")
+    notes: Optional[str] = Field(None, max_length=2000, description="Optional notes about the completion")
+    journal_id: Optional[str] = Field(None, description="Optional link to daily journal entry")

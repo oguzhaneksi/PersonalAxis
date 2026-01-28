@@ -141,3 +141,169 @@ def test_fetch_journals_by_period(MockNotion, mock_env):
     assert "formula" in query_filter
     assert query_filter["formula"]["string"]["equals"] == "2026-W04"
     assert "rich_text" not in query_filter
+
+# ============================================================================
+# FETCH_ACTIVE_HABIT TESTS (Phase 7.3 Refactoring)
+# ============================================================================
+
+@patch("orchestration.notion_service.Client")
+def test_fetch_active_habit_success(MockNotion, mock_env):
+    """Test successfully fetching an active habit by ID."""
+    mock_instance = MockNotion.return_value
+    mock_instance.pages.retrieve.return_value = {
+        "id": "habit123",
+        "parent": {
+            "type": "database_id",
+            "database_id": "habits_id"
+        },
+        "properties": {
+            "Ad": {"title": [{"plain_text": "Morning Meditation"}]},
+            "Durum": {"select": {"name": "Aktif"}},
+            "Frekans": {"select": {"name": "Günlük"}}
+        }
+    }
+    
+    client = NotionClient()
+    habit = client.fetch_active_habit("habit123")
+    
+    assert habit is not None
+    assert habit["id"] == "habit123"
+    assert habit["properties"]["Durum"]["select"]["name"] == "Aktif"
+    mock_instance.pages.retrieve.assert_called_once_with(page_id="habit123")
+
+
+@patch("orchestration.notion_service.Client")
+def test_fetch_active_habit_inactive_status(MockNotion, mock_env):
+    """Test fetching a habit with inactive status returns None."""
+    mock_instance = MockNotion.return_value
+    mock_instance.pages.retrieve.return_value = {
+        "id": "habit456",
+        "parent": {
+            "type": "database_id",
+            "database_id": "habits_id"
+        },
+        "properties": {
+            "Ad": {"title": [{"plain_text": "Old Habit"}]},
+            "Durum": {"select": {"name": "Beklemede"}}
+        }
+    }
+    
+    client = NotionClient()
+    habit = client.fetch_active_habit("habit456")
+    
+    assert habit is None
+    mock_instance.pages.retrieve.assert_called_once()
+
+
+@patch("orchestration.notion_service.Client")
+def test_fetch_active_habit_wrong_database(MockNotion, mock_env):
+    """Test fetching a page from wrong database returns None."""
+    mock_instance = MockNotion.return_value
+    mock_instance.pages.retrieve.return_value = {
+        "id": "goal789",
+        "parent": {
+            "type": "database_id",
+            "database_id": "p_goals_id"  # Wrong database
+        },
+        "properties": {
+            "Ad": {"title": [{"plain_text": "Some Goal"}]},
+            "Durum": {"select": {"name": "Aktif"}}
+        }
+    }
+    
+    client = NotionClient()
+    habit = client.fetch_active_habit("goal789")
+    
+    assert habit is None
+
+
+@patch("orchestration.notion_service.Client")
+def test_fetch_active_habit_not_found(MockNotion, mock_env):
+    """Test fetching non-existent habit handles exception and returns None."""
+    mock_instance = MockNotion.return_value
+    mock_instance.pages.retrieve.side_effect = Exception("Object not found")
+    
+    client = NotionClient()
+    habit = client.fetch_active_habit("nonexistent_id")
+    
+    assert habit is None
+    mock_instance.pages.retrieve.assert_called_once()
+
+
+@patch("orchestration.notion_service.Client")
+def test_fetch_active_habit_api_error(MockNotion, mock_env):
+    """Test API error during habit fetch returns None."""
+    mock_instance = MockNotion.return_value
+    mock_instance.pages.retrieve.side_effect = Exception("API rate limit exceeded")
+    
+    client = NotionClient()
+    habit = client.fetch_active_habit("habit999")
+    
+    assert habit is None
+
+
+@patch("orchestration.notion_service.Client")
+def test_fetch_active_habit_missing_status_field(MockNotion, mock_env):
+    """Test habit with missing status field returns None."""
+    mock_instance = MockNotion.return_value
+    mock_instance.pages.retrieve.return_value = {
+        "id": "habit_no_status",
+        "parent": {
+            "type": "database_id",
+            "database_id": "habits_id"
+        },
+        "properties": {
+            "Ad": {"title": [{"plain_text": "Incomplete Habit"}]}
+            # Missing "Durum" property
+        }
+    }
+    
+    client = NotionClient()
+    habit = client.fetch_active_habit("habit_no_status")
+    
+    assert habit is None
+
+
+@patch("orchestration.notion_service.Client")
+def test_fetch_active_habit_with_dashes_in_db_id(MockNotion, mock_env):
+    """Test database ID comparison works with or without dashes."""
+    mock_instance = MockNotion.return_value
+    # Notion returns IDs with dashes
+    mock_instance.pages.retrieve.return_value = {
+        "id": "habit-with-dashes",
+        "parent": {
+            "type": "database_id",
+            "database_id": "hab-its_id"  # Matches 'habits_id' after - removal
+        },
+        "properties": {
+            "Durum": {"select": {"name": "Aktif"}}
+        }
+    }
+    
+    client = NotionClient()
+    # Should handle dash comparison correctly
+    habit = client.fetch_active_habit("habit-with-dashes")
+    
+    # Should be found because dash removal makes them match
+    assert habit is not None
+    assert habit["id"] == "habit-with-dashes"
+    mock_instance.pages.retrieve.assert_called_once()
+
+
+@patch("orchestration.notion_service.Client")
+def test_fetch_active_habit_empty_parent(MockNotion, mock_env):
+    """Test habit with empty or malformed parent returns None."""
+    mock_instance = MockNotion.return_value
+    mock_instance.pages.retrieve.return_value = {
+        "id": "orphan_habit",
+        "parent": {},  # Missing database_id
+        "properties": {
+            "Durum": {"select": {"name": "Aktif"}}
+        }
+    }
+    
+    client = NotionClient()
+    habit = client.fetch_active_habit("orphan_habit")
+    
+    # Should handle gracefully - parent type check will fail
+    assert habit is None

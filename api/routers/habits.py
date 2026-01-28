@@ -1,7 +1,9 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 from orchestration.habit_service import HabitService
 from datetime import datetime
+from typing import Optional
 from api.error_handlers import handle_notion_errors
+from api.schemas import HabitLogRequest
 
 router = APIRouter(prefix="/api/habits", tags=["Habits"])
 
@@ -46,5 +48,82 @@ async def get_todays_habits():
         "data": {
             "date": today,
             "habits": habits
+        }
+    }
+
+
+@router.post("/log")
+@handle_notion_errors
+async def log_habit_completion(request: HabitLogRequest):
+    """
+    Log a habit completion or skip.
+    Creates a habit log entry and updates habit statistics.
+    """
+    habit_service = HabitService()
+    
+    result = habit_service.log_habit_completion(
+        habit_id=request.habit_id,
+        date_str=request.date.isoformat(),
+        completed=request.completed,
+        notes=request.notes,
+        journal_id=request.journal_id
+    )
+    
+    return {
+        "success": True,
+        "data": {
+            "log_id": result["log_id"],
+            "stats_updated": result["stats_updated"],
+            "completion_rate": result.get("completion_rate", 0.0),
+            "streak": result.get("streak", 0)
+        }
+    }
+
+
+@router.get("/{habit_id}/history")
+@handle_notion_errors
+async def get_habit_history(
+    habit_id: str,
+    start_date: Optional[str] = Query(None, description="Start date (YYYY-MM-DD)"),
+    end_date: Optional[str] = Query(None, description="End date (YYYY-MM-DD)")
+):
+    """
+    Fetch historical habit completion logs for a specific habit.
+    Optionally filter by date range.
+    """
+    habit_service = HabitService()
+    
+    history = habit_service.get_habit_history(
+        habit_id=habit_id,
+        start_date=start_date,
+        end_date=end_date
+    )
+    
+    return {
+        "success": True,
+        "data": {
+            "habit_id": habit_id,
+            "total_logs": len(history),
+            "history": history
+        }
+    }
+
+
+@router.get("/stats")
+@handle_notion_errors
+async def get_habits_stats():
+    """
+    Get comprehensive statistics for all active habits.
+    Includes completion rates, streaks, and last completion dates.
+    """
+    habit_service = HabitService()
+    
+    stats = habit_service.get_all_habits_stats()
+    
+    return {
+        "success": True,
+        "data": {
+            "total_habits": len(stats),
+            "habits": stats
         }
     }

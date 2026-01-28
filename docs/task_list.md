@@ -104,9 +104,9 @@
 - **DONE** 7.2.5: Add background job to refresh habit stats daily
 
 ### 7.3: API Endpoints
-- **TO DO** 7.3.1: Create `POST /api/habits/log` endpoint (log completion)
-- **TO DO** 7.3.2: Create `GET /api/habits/{id}/history` endpoint (fetch history)
-- **TO DO** 7.3.3: Create `GET /api/habits/stats` endpoint (analytics summary)
+- **DONE** 7.3.1: Create `POST /api/habits/log` endpoint (log completion)
+- **DONE** 7.3.2: Create `GET /api/habits/{id}/history` endpoint (fetch history)
+- **DONE** 7.3.3: Create `GET /api/habits/stats` endpoint (analytics summary)
 
 ### 7.4: PWA Updates
 - **TO DO** 7.4.1: Update habits view with completion toggle (daily check-in)

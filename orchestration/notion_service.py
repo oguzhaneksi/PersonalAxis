@@ -232,6 +232,32 @@ class NotionClient:
         }
         return self._safe_query(self.db_ids["habits"], habit_filter)
 
+    def fetch_active_habit(self, habit_id: str) -> Optional[Dict]:
+        """
+        Fetch a specific habit by page ID and verify it is active.
+        """
+        try:
+            habit = self.client.pages.retrieve(page_id=habit_id)
+            # Verify it belongs to the habits database
+            parent = habit.get("parent", {})
+            if parent.get("type") != "database_id":
+                return None
+                
+            db_id = parent.get("database_id")
+            if not db_id or db_id.replace("-", "") != self.db_ids["habits"].replace("-", ""):
+                return None
+                 
+            # Verify it is active
+            properties = habit.get("properties", {})
+            status = properties.get("Durum", {}).get("select", {}).get("name")
+            
+            if status == "Aktif":
+                return habit
+            return None
+        except Exception as e:
+            print(f"Error fetching habit {habit_id}: {e}")
+            return None
+
     def fetch_recent_journals(self, days: int = 7) -> List[Dict]:
         """
         Fetch journal entries from the last X days.
