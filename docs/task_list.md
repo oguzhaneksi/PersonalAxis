@@ -99,7 +99,7 @@
 ### 7.2: Orchestration Layer Updates
 - **DONE** 7.2.1: Add `HabitLogService` to orchestration layer
 - **DONE** 7.2.2: Update `NotionService` with habit log CRUD operations
-- **TO DO** 7.2.3: Update context builder to include habit statistics (streaks, rates)
+- **DONE** 7.2.3: Update context builder to include habit statistics (streaks, rates)
 - **DONE** 7.2.4: Implement habit stats calculation service
 - **TO DO** 7.2.5: Add background job to refresh habit stats daily
 
