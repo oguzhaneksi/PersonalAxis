@@ -114,7 +114,7 @@
 - **DONE** 7.4.3: Integrate habit logging into Daily Journal flow
 
 ### 7.5: AI Integration
-- **TO DO** 7.5.1: Update AI prompts with habit analytics context
+- **DONE** 7.5.1: Update AI prompts with habit analytics context
 
 ---
 
