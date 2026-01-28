@@ -21,6 +21,7 @@ async def get_todays_habits():
     if habits_list:
         for h in habits_list:
             props = h.get("properties", {})
+            habit_id = h.get("id")
             
             # Extract name
             name = "Adsız"
@@ -37,10 +38,23 @@ async def get_todays_habits():
             if "Son Tamamlama" in props and props["Son Tamamlama"].get("date"):
                 last_completed = props["Son Tamamlama"]["date"].get("start")
             
+            # Extract streak
+            streak = props.get("Streak", {}).get("number", 0)
+            
+            # Extract completion rate
+            completion_rate = props.get("Tamamlama Oranı", {}).get("number", 0.0)
+            
+            # Check if completed today
+            completed_today = last_completed == today
+            
             habits.append({
+                "id": habit_id,
                 "name": name,
                 "frequency": frequency,
-                "last_completed": last_completed
+                "last_completed": last_completed,
+                "streak": streak,
+                "completion_rate": completion_rate,
+                "completed_today": completed_today
             })
     
     return {
