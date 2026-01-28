@@ -12,6 +12,7 @@ from orchestration.journal_service import JournalService
 from orchestration.review_service import ReviewService
 from orchestration.habit_service import HabitService
 from orchestration.goal_service import GoalService
+from orchestration.habit_stats_service import HabitStatsService
 
 def notify(title, message):
     """Send a macOS notification."""
@@ -110,6 +111,30 @@ def quick_journal(content):
             click.echo("Failed to save entry.")
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
+
+@cli.command()
+@click.option('--notify', 'do_notify', is_flag=True, help="Send a macOS notification when finished")
+def refresh_habit_stats(do_notify):
+    """Refresh habit statistics (streaks, completion rates) for all active habits."""
+    try:
+        click.echo("Starting habit stats refresh...")
+        stats_service = HabitStatsService()
+        results = stats_service.calculate_stats_for_all_habits()
+        
+        if results:
+            click.echo(f"\n✓ Successfully refreshed stats for {len(results)} habits.")
+            if do_notify:
+                notify("PersonalAxis", f"Habit stats refreshed: {len(results)} habits updated.")
+        else:
+            click.echo("\nNo habits to update.")
+            if do_notify:
+                notify("PersonalAxis", "Habit stats refresh: No active habits found.")
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
+        error_msg = str(e)
+        short_msg = f"{error_msg[:100]}..." if len(error_msg) > 100 else error_msg
+        if do_notify:
+            notify("PersonalAxis Error", f"Habit stats refresh failed: {short_msg}")
 
 @cli.command()
 def goal_status():
