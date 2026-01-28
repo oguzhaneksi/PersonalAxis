@@ -1,5 +1,4 @@
 from typing import List, Dict, Optional
-from datetime import datetime, date
 from .notion_service import NotionClient
 from .habit_stats_service import HabitStatsService
 
