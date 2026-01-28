@@ -109,9 +109,9 @@
 - **DONE** 7.3.3: Create `GET /api/habits/stats` endpoint (analytics summary)
 
 ### 7.4: PWA Updates
-- **IN REVIEW** 7.4.1: Update habits view with completion toggle (daily check-in)
-- **IN REVIEW** 7.4.2: Add habit history visualization (streak counter, mini calendar)
-- **IN REVIEW** 7.4.3: Integrate habit logging into Daily Journal flow
+- **DONE** 7.4.1: Update habits view with completion toggle (daily check-in)
+- **DONE** 7.4.2: Add habit history visualization (streak counter, mini calendar)
+- **DONE** 7.4.3: Integrate habit logging into Daily Journal flow
 
 ### 7.5: AI Integration
 - **TO DO** 7.5.1: Update AI prompts with habit analytics context
