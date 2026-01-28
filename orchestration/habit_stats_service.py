@@ -1,5 +1,5 @@
 import datetime
-from typing import List, Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple
 from .notion_service import NotionClient
 from .util import safe_get_text
 
