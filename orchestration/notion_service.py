@@ -658,6 +658,46 @@ class NotionClient:
             print(f"Error fetching habit logs: {e}")
             return []
 
+    def update_habit_log(
+        self,
+        log_id: str,
+        completed: Optional[bool] = None,
+        notes: Optional[str] = None,
+        journal_id: Optional[str] = None
+    ) -> bool:
+        """
+        Update an existing habit log entry.
+        
+        Args:
+            log_id: ID of the habit log page to update
+            completed: New completion status
+            notes: New notes
+            journal_id: Optional link to the daily journal entry
+            
+        Returns:
+            True if successful, False otherwise.
+        """
+        properties = {}
+        
+        if completed is not None:
+             properties["Tamamlandı"] = {"checkbox": completed}
+             
+        if notes is not None:
+            properties["Notlar"] = {"rich_text": [{"text": {"content": notes[:2000]}}]}
+            
+        if journal_id is not None:
+            properties["Günlük Günce"] = {"relation": [{"id": journal_id}]}
+            
+        if not properties:
+            return True
+
+        try:
+            self.client.pages.update(page_id=log_id, properties=properties)
+            return True
+        except Exception as e:
+            print(f"Error updating habit log {log_id}: {e}")
+            return False
+
     def fetch_habit_logs_by_period(self, period_field: str, period_value: str) -> List[Dict]:
         """
         Fetch habit logs filtered by period (Hafta, Ay, Çeyrek, Yıl).

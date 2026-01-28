@@ -43,17 +43,43 @@ class HabitService:
         Returns:
             Dict with log_id and updated statistics.
         """
-        # Create the habit log
-        log_id = self.notion.create_habit_log(
+        # Check if a log entry already exists for this habit and date
+        existing_logs = self.notion.fetch_habit_logs(
             habit_id=habit_id,
-            date_str=date_str,
-            completed=completed,
-            notes=notes or "",
-            journal_id=journal_id
+            start_date=date_str,
+            end_date=date_str
         )
         
-        if not log_id:
-            raise Exception("Failed to create habit log")
+        log_id = None
+        if existing_logs:
+            # Update the existing log (take the first one if multiples exist)
+            log_id = existing_logs[0]["id"]
+            
+            # Avoid overriding notes or journal_id with empty values if they exist
+            update_params = {
+                "log_id": log_id,
+                "completed": completed
+            }
+            if notes:
+                update_params["notes"] = notes
+            if journal_id:
+                update_params["journal_id"] = journal_id
+                
+            success = self.notion.update_habit_log(**update_params)
+            if not success:
+                raise Exception(f"Failed to update habit log {log_id}")
+        else:
+            # Create the habit log
+            log_id = self.notion.create_habit_log(
+                habit_id=habit_id,
+                date_str=date_str,
+                completed=completed,
+                notes=notes or "",
+                journal_id=journal_id
+            )
+            
+            if not log_id:
+                raise Exception("Failed to create habit log")
         
         # Fetch the specific habit by ID to get the latest properties for stats (optimized vs fetching all)
         habit = self.notion.fetch_active_habit(habit_id)

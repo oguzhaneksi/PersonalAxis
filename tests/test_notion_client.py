@@ -307,3 +307,173 @@ def test_fetch_active_habit_empty_parent(MockNotion, mock_env):
     
     # Should handle gracefully - parent type check will fail
     assert habit is None
+
+
+# ============================================================================
+# UPDATE_HABIT_LOG TESTS
+# ============================================================================
+
+@patch("orchestration.notion_service.Client")
+def test_update_habit_log_both_fields(MockNotion, mock_env):
+    """Test updating both completed status and notes."""
+    mock_instance = MockNotion.return_value
+    mock_instance.pages.update.return_value = {"id": "log123"}
+    
+    client = NotionClient()
+    result = client.update_habit_log(
+        log_id="log123",
+        completed=True,
+        notes="Completed in the morning"
+    )
+    
+    assert result is True
+    mock_instance.pages.update.assert_called_once()
+    args, kwargs = mock_instance.pages.update.call_args
+    assert kwargs["page_id"] == "log123"
+    assert kwargs["properties"]["Tamamlandı"]["checkbox"] is True
+    assert kwargs["properties"]["Notlar"]["rich_text"][0]["text"]["content"] == "Completed in the morning"
+
+
+@patch("orchestration.notion_service.Client")
+def test_update_habit_log_only_completed(MockNotion, mock_env):
+    """Test updating only the completed status."""
+    mock_instance = MockNotion.return_value
+    mock_instance.pages.update.return_value = {"id": "log456"}
+    
+    client = NotionClient()
+    result = client.update_habit_log(
+        log_id="log456",
+        completed=False
+    )
+    
+    assert result is True
+    mock_instance.pages.update.assert_called_once()
+    args, kwargs = mock_instance.pages.update.call_args
+    assert kwargs["page_id"] == "log456"
+    assert kwargs["properties"]["Tamamlandı"]["checkbox"] is False
+    assert "Notlar" not in kwargs["properties"]
+
+
+@patch("orchestration.notion_service.Client")
+def test_update_habit_log_only_notes(MockNotion, mock_env):
+    """Test updating only the notes field."""
+    mock_instance = MockNotion.return_value
+    mock_instance.pages.update.return_value = {"id": "log789"}
+    
+    client = NotionClient()
+    result = client.update_habit_log(
+        log_id="log789",
+        notes="Updated notes"
+    )
+    
+    assert result is True
+    mock_instance.pages.update.assert_called_once()
+    args, kwargs = mock_instance.pages.update.call_args
+    assert kwargs["page_id"] == "log789"
+    assert kwargs["properties"]["Notlar"]["rich_text"][0]["text"]["content"] == "Updated notes"
+    assert "Tamamlandı" not in kwargs["properties"]
+
+
+@patch("orchestration.notion_service.Client")
+def test_update_habit_log_empty_notes(MockNotion, mock_env):
+    """Test updating with empty notes string."""
+    mock_instance = MockNotion.return_value
+    mock_instance.pages.update.return_value = {"id": "log_empty"}
+    
+    client = NotionClient()
+    result = client.update_habit_log(
+        log_id="log_empty",
+        completed=True,
+        notes=""
+    )
+    
+    assert result is True
+    mock_instance.pages.update.assert_called_once()
+    args, kwargs = mock_instance.pages.update.call_args
+    assert kwargs["properties"]["Tamamlandı"]["checkbox"] is True
+    assert kwargs["properties"]["Notlar"]["rich_text"][0]["text"]["content"] == ""
+
+
+@patch("orchestration.notion_service.Client")
+def test_update_habit_log_no_properties(MockNotion, mock_env):
+    """Test update with no properties returns True without API call."""
+    mock_instance = MockNotion.return_value
+    
+    client = NotionClient()
+    result = client.update_habit_log(log_id="log_none")
+    
+    assert result is True
+    mock_instance.pages.update.assert_not_called()
+
+
+@patch("orchestration.notion_service.Client")
+def test_update_habit_log_api_error(MockNotion, mock_env):
+    """Test handling of API errors during update."""
+    mock_instance = MockNotion.return_value
+    mock_instance.pages.update.side_effect = Exception("API error")
+    
+    client = NotionClient()
+    result = client.update_habit_log(
+        log_id="log_error",
+        completed=True
+    )
+    
+    assert result is False
+    mock_instance.pages.update.assert_called_once()
+
+
+@patch("orchestration.notion_service.Client")
+def test_update_habit_log_long_notes_truncated(MockNotion, mock_env):
+    """Test that notes longer than 2000 characters are truncated."""
+    mock_instance = MockNotion.return_value
+    mock_instance.pages.update.return_value = {"id": "log_long"}
+    
+    long_notes = "A" * 3000  # Create 3000 character string
+    
+    client = NotionClient()
+    result = client.update_habit_log(
+        log_id="log_long",
+        notes=long_notes
+    )
+    
+    assert result is True
+    args, kwargs = mock_instance.pages.update.call_args
+    actual_notes = kwargs["properties"]["Notlar"]["rich_text"][0]["text"]["content"]
+    assert len(actual_notes) == 2000
+    assert actual_notes == "A" * 2000
+
+
+@patch("orchestration.notion_service.Client")
+def test_update_habit_log_toggle_completed_false(MockNotion, mock_env):
+    """Test explicitly setting completed to False."""
+    mock_instance = MockNotion.return_value
+    mock_instance.pages.update.return_value = {"id": "log_false"}
+    
+    client = NotionClient()
+    result = client.update_habit_log(
+        log_id="log_false",
+        completed=False,
+        notes="Decided not to do it today"
+    )
+    
+    assert result is True
+    args, kwargs = mock_instance.pages.update.call_args
+    assert kwargs["properties"]["Tamamlandı"]["checkbox"] is False
+    assert "Decided not to do it today" in kwargs["properties"]["Notlar"]["rich_text"][0]["text"]["content"]
+
+
+@patch("orchestration.notion_service.Client")
+def test_update_habit_log_with_special_characters(MockNotion, mock_env):
+    """Test updating notes with special characters and emojis."""
+    mock_instance = MockNotion.return_value
+    mock_instance.pages.update.return_value = {"id": "log_special"}
+    
+    client = NotionClient()
+    result = client.update_habit_log(
+        log_id="log_special",
+        notes="Great session! 💪 Felt amazing 🎉"
+    )
+    
+    assert result is True
+    args, kwargs = mock_instance.pages.update.call_args
+    assert kwargs["properties"]["Notlar"]["rich_text"][0]["text"]["content"] == "Great session! 💪 Felt amazing 🎉"
