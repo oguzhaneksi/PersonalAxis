@@ -463,18 +463,36 @@ Screens.saveJournal = {
         if (habit && isChecked !== habit.completed_today) {
           habitPromises.push(
             api.logHabitCompletion(habitId, dateVal, isChecked, null, journalId)
-              .catch(err => console.error(`Failed to log habit ${habitId}:`, err))
+              .then(() => ({ success: true, habitId }))
+              .catch(err => {
+                console.error(`Failed to log habit ${habitId}:`, err);
+                return { success: false, habitId };
+              })
           );
         }
       });
 
-      // Wait for all habit logs to complete
+      // Wait for all habit logs to complete and track results
+      let toastMessage = 'Journal saved successfully.';
+      let toastType = 'success';
       if (habitPromises.length > 0) {
-        await Promise.all(habitPromises);
+        const results = await Promise.all(habitPromises);
+        const successCount = results.filter(r => r.success).length;
+        const totalCount = results.length;
+        
+        if (successCount === totalCount) {
+          toastMessage += ` ${successCount} habit${successCount !== 1 ? 's' : ''} logged successfully.`;
+        } else if (successCount > 0) {
+          toastMessage += ` ${successCount}/${totalCount} habits logged successfully.`;
+          toastType = 'warning';
+        } else {
+          toastMessage += ` Warning: All habits failed to log.`;
+          toastType = 'warning';
+        }
       }
 
-      Utils.haptic('success');
-      Utils.showToast('Journal and habits saved successfully');
+      Utils.haptic(toastType === 'warning' ? 'error' : 'success');
+      Utils.showToast(toastMessage, toastType);
       router.back();
     } catch (error) {
       handleError(error);
