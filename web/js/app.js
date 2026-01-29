@@ -483,9 +483,10 @@ Screens.saveJournal = {
           habitMessage = ` ${successCount} habit${successCount !== 1 ? 's' : ''} logged successfully.`;
         } else if (successCount > 0) {
           habitMessage = ` ${successCount}/${totalCount} habits logged successfully.`;
-          Utils.showToast(`Warning: ${totalCount - successCount} habit${(totalCount - successCount) !== 1 ? 's' : ''} failed to log`, 'warning');
+          const failedCount = totalCount - successCount;
+          Utils.showToast(`Warning: ${failedCount} habit${failedCount !== 1 ? 's' : ''} failed to log`, 'warning');
         } else {
-          habitMessage = ` Warning: All habits failed to log.`;
+          habitMessage = ` All habits failed to log.`;
           Utils.showToast('Warning: All habits failed to log', 'warning');
         }
       }
