@@ -624,15 +624,17 @@ Screens.habits = {
     container.innerHTML = this.habits.map((habit, index) => {
       const completionPercent = Math.round(habit.completion_rate * 100 || 0);
       const isExpanded = this.expandedHabitId === habit.id;
-      const habitName = habit.name || 'Untitled Habit';
+      const habitName = Utils.escapeHtml(habit.name || 'Untitled Habit');
+      const habitId = Utils.escapeHtml(String(habit.id || ''));
+      const streak = parseInt(habit.streak, 10) || 0;
       
       return `
         <div class="habit-card ${isExpanded ? 'expanded' : ''}">
-          <div class="list-item habit-expand-trigger" data-habit-id="${habit.id}">
+          <div class="list-item habit-expand-trigger" data-habit-id="${habitId}">
             <div class="list-content">
               <div class="title">${habitName}</div>
               <div class="subtitle">
-                🔥 ${habit.streak || 0} day streak • ${completionPercent}% completion
+                🔥 ${streak} day streak • ${completionPercent}% completion
               </div>
             </div>
             <div class="habit-actions">
@@ -648,11 +650,11 @@ Screens.habits = {
                       aria-label="${isExpanded ? 'Collapse' : 'Expand'} ${habitName} details"
                       aria-expanded="${isExpanded ? 'true' : 'false'}"
                       tabindex="0">
-                <span class="expand-icon" aria-hidden="true">${isExpanded ? '▼' : '▶'}</span>
+                <span class="expand-icon" aria-hidden="true">▶</span>
               </button>
             </div>
           </div>
-          ${isExpanded ? `<div class="habit-details" id="habit-details-${habit.id}" role="region" aria-label="${habitName} history">
+          ${isExpanded ? `<div class="habit-details" id="habit-details-${habitId}" role="region" aria-label="${habitName} history">
             <div class="loading-text">Loading history...</div>
           </div>` : ''}
         </div>

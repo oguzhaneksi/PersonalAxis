@@ -3,6 +3,20 @@
  */
 const Utils = {
   /**
+   * Escape HTML to prevent XSS attacks
+   * Converts special characters to HTML entities
+   */
+  escapeHtml(unsafe) {
+    if (unsafe == null) return '';
+    return String(unsafe)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  },
+
+  /**
    * Get template content by ID
    */
   getTemplate(id) {
