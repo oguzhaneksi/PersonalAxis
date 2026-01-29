@@ -323,7 +323,9 @@ Screens.reviewContext = {
 // SAVE JOURNAL SCREEN
 // ==========================================
 Screens.saveJournal = {
-  show() {
+  habits: [],
+
+  async show() {
     Utils.render(Utils.getTemplate('save-journal-screen'));
 
     // Set default title
@@ -338,6 +340,80 @@ Screens.saveJournal = {
     if (dateInput) {
       dateInput.value = date;
     }
+
+    // Load habits
+    await this.loadHabits();
+  },
+
+  async loadHabits() {
+    const container = document.getElementById('journal-habits-list');
+    if (!container) return;
+
+    try {
+      const response = await api.getTodaysHabits();
+      this.habits = response.data.habits || [];
+      this.renderHabits();
+    } catch (error) {
+      console.error('Failed to load habits:', error);
+      container.innerHTML = '<div class="error-text">Failed to load habits</div>';
+    }
+  },
+
+  renderHabits() {
+    const container = document.getElementById('journal-habits-list');
+    if (!container) return;
+
+    if (this.habits.length === 0) {
+      container.innerHTML = '<div class="subtitle">No habits configured</div>';
+      return;
+    }
+
+    // Clear existing content
+    container.innerHTML = '';
+
+    // Safely build habit items using DOM APIs to avoid XSS
+    this.habits.forEach((habit, index) => {
+      const item = document.createElement('div');
+      item.className = 'journal-habit-item';
+
+      const label = document.createElement('label');
+      label.className = 'habit-checkbox-label';
+
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.className = 'habit-checkbox-input';
+      input.setAttribute('data-habit-id', habit.id);
+      input.setAttribute('data-habit-index', index);
+      if (habit.completed_today) {
+        input.checked = true;
+      }
+
+      const customCheckbox = document.createElement('span');
+      customCheckbox.className = 'habit-checkbox-custom' + (habit.completed_today ? ' checked' : '');
+
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'habit-name';
+      // Use textContent to prevent HTML from being interpreted
+      nameSpan.textContent = habit.name != null ? String(habit.name) : '';
+
+      label.appendChild(input);
+      label.appendChild(customCheckbox);
+      label.appendChild(nameSpan);
+
+      item.appendChild(label);
+      container.appendChild(item);
+    });
+    // Add change listeners
+    container.querySelectorAll('.habit-checkbox-input').forEach(checkbox => {
+      checkbox.addEventListener('change', (e) => {
+        const customCheckbox = e.target.nextElementSibling;
+        if (e.target.checked) {
+          customCheckbox.classList.add('checked');
+        } else {
+          customCheckbox.classList.remove('checked');
+        }
+      });
+    });
   },
 
   async submit(event) {
@@ -369,9 +445,54 @@ Screens.saveJournal = {
     Utils.setLoading(true);
 
     try {
-      await api.saveFullJournal(payload);
-      Utils.haptic('success');
-      Utils.showToast('Journal saved successfully');
+      // Save journal
+      const journalResponse = await api.saveFullJournal(payload);
+      const journalId = journalResponse.data?.id;
+
+      // Log habits
+      const habitCheckboxes = document.querySelectorAll('#journal-habits-list .habit-checkbox-input');
+      const habitPromises = [];
+      
+      habitCheckboxes.forEach(checkbox => {
+        const habitId = checkbox.dataset.habitId;
+        const isChecked = checkbox.checked;
+        const habitIndex = parseInt(checkbox.dataset.habitIndex, 10);
+        const habit = this.habits[habitIndex];
+        
+        // Only log if status changed from original
+        if (habit && isChecked !== habit.completed_today) {
+          habitPromises.push(
+            api.logHabitCompletion(habitId, dateVal, isChecked, null, journalId)
+              .then(() => ({ success: true, habitId }))
+              .catch(err => {
+                console.error(`Failed to log habit ${habitId}:`, err);
+                return { success: false, habitId };
+              })
+          );
+        }
+      });
+
+      // Wait for all habit logs to complete and track results
+      let toastMessage = 'Journal saved successfully.';
+      let toastType = 'success';
+      if (habitPromises.length > 0) {
+        const results = await Promise.all(habitPromises);
+        const successCount = results.filter(r => r.success).length;
+        const totalCount = results.length;
+        
+        if (successCount === totalCount) {
+          toastMessage += ` ${successCount} habit${successCount !== 1 ? 's' : ''} logged successfully.`;
+        } else if (successCount > 0) {
+          toastMessage += ` ${successCount}/${totalCount} habits logged successfully.`;
+          toastType = 'warning';
+        } else {
+          toastMessage += ` Warning: All habits failed to log.`;
+          toastType = 'warning';
+        }
+      }
+
+      Utils.haptic(toastType === 'warning' ? 'error' : 'success');
+      Utils.showToast(toastMessage, toastType);
       router.back();
     } catch (error) {
       handleError(error);
@@ -488,6 +609,9 @@ Screens.goals = {
 // HABITS SCREEN
 // ==========================================
 Screens.habits = {
+  habits: [],
+  expandedHabitId: null,
+
   async show() {
     Utils.render(Utils.getTemplate('habits-screen'));
     await this.load();
@@ -499,33 +623,236 @@ Screens.habits = {
 
     try {
       const response = await api.getTodaysHabits();
-      const habits = response.data.habits || [];
-      this.renderHabits(habits);
+      this.habits = response.data.habits || [];
+      this.renderHabits();
     } catch (error) {
       handleError(error);
       listEl.innerHTML = '<div class="list-item">Failed to load habits</div>';
     }
   },
 
-  renderHabits(habits) {
+  renderHabits() {
     const container = document.getElementById('habits-list');
 
-    if (habits.length === 0) {
+    if (this.habits.length === 0) {
       container.innerHTML = '<div class="list-item">No habits for today</div>';
       return;
     }
 
-    container.innerHTML = habits.map(habit => `
-      <div class="list-item">
-        <div class="list-content">
-          <div class="title">${habit.name || 'Untitled Habit'}</div>
-          <div class="subtitle">Streak: ${habit.streak || 0}</div>
+    // Build habit cards using DOM APIs to avoid injecting unescaped HTML
+    container.innerHTML = '';
+    this.habits.forEach((habit, index) => {
+      const completionPercent = Math.round(habit.completion_rate * 100 || 0);
+      const isExpanded = this.expandedHabitId === habit.id;
+
+      const habitCard = document.createElement('div');
+      habitCard.className = 'habit-card' + (isExpanded ? ' expanded' : '');
+
+      const listItem = document.createElement('div');
+      listItem.className = 'list-item habit-expand-trigger';
+      listItem.dataset.habitId = String(habit.id);
+
+      const listContent = document.createElement('div');
+      listContent.className = 'list-content';
+
+      const title = document.createElement('div');
+      title.className = 'title';
+      title.textContent = habit.name || 'Untitled Habit';
+
+      const subtitle = document.createElement('div');
+      subtitle.className = 'subtitle';
+      subtitle.textContent = `🔥 ${habit.streak || 0} day streak • ${completionPercent}% completion`;
+
+      listContent.appendChild(title);
+      listContent.appendChild(subtitle);
+
+      const habitActions = document.createElement('div');
+      habitActions.className = 'habit-actions';
+
+      const checkbox = document.createElement('div');
+      checkbox.className = 'checkbox habit-toggle-trigger' + (habit.completed_today ? ' checked' : '');
+      checkbox.dataset.habitIndex = String(index);
+      checkbox.textContent = habit.completed_today ? '✓' : '○';
+
+      const expandIcon = document.createElement('span');
+      expandIcon.className = 'expand-icon';
+      expandIcon.textContent = isExpanded ? '▼' : '▶';
+
+      habitActions.appendChild(checkbox);
+      habitActions.appendChild(expandIcon);
+
+      listItem.appendChild(listContent);
+      listItem.appendChild(habitActions);
+
+      habitCard.appendChild(listItem);
+
+      if (isExpanded) {
+        const habitDetails = document.createElement('div');
+        habitDetails.className = 'habit-details';
+        habitDetails.id = `habit-details-${habit.id}`;
+
+        const loadingText = document.createElement('div');
+        loadingText.className = 'loading-text';
+        loadingText.textContent = 'Loading history...';
+
+        habitDetails.appendChild(loadingText);
+        habitCard.appendChild(habitDetails);
+      }
+
+      container.appendChild(habitCard);
+    });
+    // Attach event listeners
+    container.querySelectorAll('.habit-expand-trigger').forEach(el => {
+      el.addEventListener('click', () => {
+        const habitId = el.dataset.habitId;
+        this.toggleExpand(habitId);
+      });
+    });
+
+    container.querySelectorAll('.habit-toggle-trigger').forEach(el => {
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const index = parseInt(el.dataset.habitIndex, 10);
+        this.toggleHabit(index);
+      });
+    });
+
+    // Load history for expanded habit
+    if (this.expandedHabitId) {
+      this.loadHabitHistory(this.expandedHabitId);
+    }
+  },
+
+  async toggleExpand(habitId) {
+    Utils.haptic('light');
+    
+    if (this.expandedHabitId === habitId) {
+      this.expandedHabitId = null;
+    } else {
+      this.expandedHabitId = habitId;
+    }
+    
+    this.renderHabits();
+  },
+
+  async loadHabitHistory(habitId) {
+    const detailsEl = document.getElementById(`habit-details-${habitId}`);
+    if (!detailsEl) return;
+
+    try {
+      // Get last 30 days of history
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 30);
+
+      const response = await api.getHabitHistory(
+        habitId,
+        startDate.toISOString().split('T')[0],
+        endDate.toISOString().split('T')[0]
+      );
+
+      const history = response.data?.history || [];
+      this.renderHabitHistory(detailsEl, history);
+    } catch (error) {
+      detailsEl.innerHTML = '<div class="error-text">Failed to load history</div>';
+      console.error('Failed to load habit history:', error);
+    }
+  },
+
+  renderHabitHistory(container, history) {
+    // Create a map of dates to completion status
+    const historyMap = {};
+    history.forEach(log => {
+      historyMap[log.date] = log.completed;
+    });
+
+    // Generate last 30 days
+    const days = [];
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      days.push({
+        date: dateStr,
+        dayOfWeek: date.toLocaleDateString('en-US', { weekday: 'short' }).substring(0, 1),
+        dayOfMonth: date.getDate(),
+        completed: historyMap[dateStr] === true,
+        skipped: historyMap[dateStr] === false
+      });
+    }
+
+    container.innerHTML = `
+      <div class="habit-stats">
+        <div class="stat-item">
+          <span class="stat-label">Last 7 days</span>
+          <span class="stat-value">${this.calculateCompletionRate(days.slice(-7))}</span>
         </div>
-        <div class="checkbox ${habit.completed ? 'checked' : ''}">
-            ${habit.completed ? '✓' : '○'}
+        <div class="stat-item">
+          <span class="stat-label">Last 30 days</span>
+          <span class="stat-value">${this.calculateCompletionRate(days)}</span>
         </div>
       </div>
-    `).join('');
+      <div class="habit-calendar">
+        ${days.map(day => `
+          <div class="calendar-day ${day.completed ? 'completed' : ''} ${day.skipped ? 'skipped' : ''}" 
+               title="${day.date}">
+            <div class="day-label">${day.dayOfWeek}</div>
+            <div class="day-number">${day.dayOfMonth}</div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  },
+
+  calculateCompletionRate(days) {
+    const completedDays = days.filter(d => d.completed).length;
+    const totalDays = days.length;
+    const rate = totalDays > 0 ? Math.round((completedDays / totalDays) * 100) : 0;
+    return `${completedDays}/${totalDays} (${rate}%)`;
+  },
+
+  async toggleHabit(index) {
+    const habit = this.habits[index];
+    if (!habit) return;
+
+    const newStatus = !habit.completed_today;
+    const today = new Date().toISOString().split('T')[0];
+
+    Utils.setLoading(true);
+    try {
+      const response = await api.logHabitCompletion(habit.id, today, newStatus, null, null);
+      
+      // Update local state
+      habit.completed_today = newStatus;
+
+      // Update stats from API response
+      if (response.data) {
+        if (typeof response.data.streak === 'number') {
+          habit.streak = response.data.streak;
+        }
+        if (typeof response.data.completion_rate === 'number') {
+          habit.completion_rate = response.data.completion_rate;
+        }
+      }
+      
+      if (newStatus) {
+        // Update last completion date to today
+        habit.last_completed = today;
+      }
+      
+      // Re-render
+      this.renderHabits();
+      
+      Utils.showToast(
+        newStatus ? `✓ ${habit.name} completed!` : `○ ${habit.name} unmarked`,
+        'success'
+      );
+      Utils.haptic('medium');
+    } catch (error) {
+      handleError(error);
+    } finally {
+      Utils.setLoading(false);
+    }
   },
 
   async refresh() {

@@ -105,6 +105,28 @@ class APIClient {
     return this.request('/api/habits/');
   }
 
+  async logHabitCompletion(habitId, date, completed, notes = null, journalId = null) {
+    return this.request('/api/habits/log', {
+      method: 'POST',
+      body: JSON.stringify({
+        habit_id: habitId,
+        date: date,
+        completed: completed,
+        notes: notes,
+        journal_id: journalId
+      })
+    });
+  }
+
+  async getHabitHistory(habitId, startDate = null, endDate = null) {
+    let url = `/api/habits/${habitId}/history`;
+    const params = new URLSearchParams();
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
+    if (params.toString()) url += `?${params.toString()}`;
+    return this.request(url);
+  }
+
   // ============ Reviews Endpoints ============
 
   async saveReview(type, reviewData) {

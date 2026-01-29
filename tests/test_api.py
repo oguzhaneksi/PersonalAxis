@@ -1212,3 +1212,443 @@ def test_review_with_special_characters(mock_service_cls):
     
     response = client.post("/api/reviews/weekly", json=payload, cookies=login_and_get_cookies())
     assert response.status_code == 200
+
+
+# ============================================================================
+# HABIT LOGGING API TESTS (Phase 7.3)
+# ============================================================================
+
+@patch("api.routers.habits.HabitService")
+def test_log_habit_completion_success(mock_service_class):
+    """Test successful habit completion logging."""
+    mock_service = MagicMock()
+    mock_service_class.return_value = mock_service
+    
+    mock_service.log_habit_completion.return_value = {
+        "log_id": "log123",
+        "stats_updated": True,
+        "completion_rate": 0.85,
+        "streak": 7
+    }
+    
+    payload = {
+        "habit_id": "habit123",
+        "date": "2026-01-27",
+        "completed": True,
+        "notes": "Completed morning meditation"
+    }
+    
+    response = client.post("/api/habits/log", json=payload, cookies=login_and_get_cookies())
+    assert response.status_code == 200
+    data = response.json()
+    assert data["success"] is True
+    assert data["data"]["log_id"] == "log123"
+    assert data["data"]["stats_updated"] is True
+    assert data["data"]["completion_rate"] == 0.85
+    assert data["data"]["streak"] == 7
+    
+    # Verify the service was called correctly
+    mock_service.log_habit_completion.assert_called_once_with(
+        habit_id="habit123",
+        date_str="2026-01-27",
+        completed=True,
+        notes="Completed morning meditation",
+        journal_id=None
+    )
+
+
+@patch("api.routers.habits.HabitService")
+def test_log_habit_skip(mock_service_class):
+    """Test logging a skipped habit."""
+    mock_service = MagicMock()
+    mock_service_class.return_value = mock_service
+    
+    mock_service.log_habit_completion.return_value = {
+        "log_id": "log456",
+        "stats_updated": True,
+        "completion_rate": 0.75,
+        "streak": 0
+    }
+    
+    payload = {
+        "habit_id": "habit123",
+        "date": "2026-01-27",
+        "completed": False,
+        "notes": "Skipped due to travel"
+    }
+    
+    response = client.post("/api/habits/log", json=payload, cookies=login_and_get_cookies())
+    assert response.status_code == 200
+    data = response.json()
+    assert data["success"] is True
+    assert data["data"]["streak"] == 0
+
+
+@patch("api.routers.habits.HabitService")
+def test_log_habit_with_journal_link(mock_service_class):
+    """Test logging habit with journal entry link."""
+    mock_service = MagicMock()
+    mock_service_class.return_value = mock_service
+    
+    mock_service.log_habit_completion.return_value = {
+        "log_id": "log789",
+        "stats_updated": True,
+        "completion_rate": 0.90,
+        "streak": 10
+    }
+    
+    payload = {
+        "habit_id": "habit123",
+        "date": "2026-01-27",
+        "completed": True,
+        "notes": "Great session!",
+        "journal_id": "journal123"
+    }
+    
+    response = client.post("/api/habits/log", json=payload, cookies=login_and_get_cookies())
+    assert response.status_code == 200
+    
+    # Verify journal_id was passed
+    mock_service.log_habit_completion.assert_called_once()
+    call_args = mock_service.log_habit_completion.call_args
+    assert call_args.kwargs["journal_id"] == "journal123"
+
+
+@patch("api.routers.habits.HabitService")
+def test_log_habit_validation_missing_habit_id(mock_service_class):
+    """Test validation error when habit_id is missing."""
+    payload = {
+        "date": "2026-01-27",
+        "completed": True
+    }
+    
+    response = client.post("/api/habits/log", json=payload, cookies=login_and_get_cookies())
+    assert response.status_code == 422
+    data = response.json()
+    assert data["success"] is False
+    assert data["error"]["code"] == "VALIDATION_ERROR"
+
+
+@patch("api.routers.habits.HabitService")
+def test_log_habit_validation_invalid_date(mock_service_class):
+    """Test validation error with invalid date format."""
+    payload = {
+        "habit_id": "habit123",
+        "date": "invalid-date",
+        "completed": True
+    }
+    
+    response = client.post("/api/habits/log", json=payload, cookies=login_and_get_cookies())
+    assert response.status_code == 422
+
+
+@patch("api.routers.habits.HabitService")
+def test_log_habit_validation_notes_too_long(mock_service_class):
+    """Test validation error when notes exceed max length."""
+    payload = {
+        "habit_id": "habit123",
+        "date": "2026-01-27",
+        "completed": True,
+        "notes": "x" * 2001  # Exceeds 2000 char limit
+    }
+    
+    response = client.post("/api/habits/log", json=payload, cookies=login_and_get_cookies())
+    assert response.status_code == 422
+
+
+@patch("api.routers.habits.HabitService")
+def test_log_habit_notion_error(mock_service_class):
+    """Test error handling when Notion API fails."""
+    mock_service = MagicMock()
+    mock_service_class.return_value = mock_service
+    
+    # Simulate Notion API error
+    mock_service.log_habit_completion.side_effect = create_mock_api_error("internal_server_error", 500)
+    
+    payload = {
+        "habit_id": "habit123",
+        "date": "2026-01-27",
+        "completed": True
+    }
+    
+    response = client.post("/api/habits/log", json=payload, cookies=login_and_get_cookies())
+    assert response.status_code == 502
+    data = response.json()
+    assert data["success"] is False
+    assert data["error"]["code"] == "NOTION_API_ERROR"
+
+
+@patch("api.routers.habits.HabitService")
+def test_get_habit_history_success(mock_service_class):
+    """Test fetching habit history successfully."""
+    mock_service = MagicMock()
+    mock_service_class.return_value = mock_service
+    
+    mock_service.get_habit_history.return_value = [
+        {
+            "id": "log1",
+            "date": "2026-01-27",
+            "completed": True,
+            "notes": "Great session"
+        },
+        {
+            "id": "log2",
+            "date": "2026-01-26",
+            "completed": True,
+            "notes": ""
+        },
+        {
+            "id": "log3",
+            "date": "2026-01-25",
+            "completed": False,
+            "notes": "Skipped"
+        }
+    ]
+    
+    response = client.get("/api/habits/habit123/history", cookies=login_and_get_cookies())
+    assert response.status_code == 200
+    data = response.json()
+    assert data["success"] is True
+    assert data["data"]["habit_id"] == "habit123"
+    assert data["data"]["total_logs"] == 3
+    assert len(data["data"]["history"]) == 3
+    assert data["data"]["history"][0]["completed"] is True
+
+
+@patch("api.routers.habits.HabitService")
+def test_get_habit_history_with_date_range(mock_service_class):
+    """Test fetching habit history with date range filter."""
+    mock_service = MagicMock()
+    mock_service_class.return_value = mock_service
+    
+    mock_service.get_habit_history.return_value = [
+        {
+            "id": "log1",
+            "date": "2026-01-20",
+            "completed": True,
+            "notes": ""
+        }
+    ]
+    
+    response = client.get(
+        "/api/habits/habit123/history?start_date=2026-01-15&end_date=2026-01-25",
+        cookies=login_and_get_cookies()
+    )
+    assert response.status_code == 200
+    
+    # Verify service was called with correct parameters
+    mock_service.get_habit_history.assert_called_once_with(
+        habit_id="habit123",
+        start_date="2026-01-15",
+        end_date="2026-01-25"
+    )
+
+
+@patch("api.routers.habits.HabitService")
+def test_get_habit_history_empty(mock_service_class):
+    """Test fetching history for habit with no logs."""
+    mock_service = MagicMock()
+    mock_service_class.return_value = mock_service
+    
+    mock_service.get_habit_history.return_value = []
+    
+    response = client.get("/api/habits/habit123/history", cookies=login_and_get_cookies())
+    assert response.status_code == 200
+    data = response.json()
+    assert data["success"] is True
+    assert data["data"]["total_logs"] == 0
+    assert data["data"]["history"] == []
+
+
+@patch("api.routers.habits.HabitService")
+def test_get_habit_history_notion_error(mock_service_class):
+    """Test error handling when fetching history fails."""
+    mock_service = MagicMock()
+    mock_service_class.return_value = mock_service
+    
+    mock_service.get_habit_history.side_effect = create_mock_api_error("internal_server_error", 500)
+    
+    response = client.get("/api/habits/habit123/history", cookies=login_and_get_cookies())
+    assert response.status_code == 502
+    data = response.json()
+    assert data["success"] is False
+    assert data["error"]["code"] == "NOTION_API_ERROR"
+
+
+@patch("api.routers.habits.HabitService")
+def test_get_habits_stats_success(mock_service_class):
+    """Test fetching statistics for all habits."""
+    mock_service = MagicMock()
+    mock_service_class.return_value = mock_service
+    
+    mock_service.get_all_habits_stats.return_value = [
+        {
+            "id": "habit1",
+            "name": "Morning Meditation",
+            "frequency": "Günlük",
+            "completion_rate": 0.85,
+            "streak": 7,
+            "last_completion": "2026-01-27"
+        },
+        {
+            "id": "habit2",
+            "name": "Weekly Review",
+            "frequency": "Haftalık",
+            "completion_rate": 1.0,
+            "streak": 4,
+            "last_completion": "2026-01-21"
+        }
+    ]
+    
+    response = client.get("/api/habits/stats", cookies=login_and_get_cookies())
+    assert response.status_code == 200
+    data = response.json()
+    assert data["success"] is True
+    assert data["data"]["total_habits"] == 2
+    assert len(data["data"]["habits"]) == 2
+    assert data["data"]["habits"][0]["name"] == "Morning Meditation"
+    assert data["data"]["habits"][0]["streak"] == 7
+
+
+@patch("api.routers.habits.HabitService")
+def test_get_habits_stats_empty(mock_service_class):
+    """Test fetching stats when no habits exist."""
+    mock_service = MagicMock()
+    mock_service_class.return_value = mock_service
+    
+    mock_service.get_all_habits_stats.return_value = []
+    
+    response = client.get("/api/habits/stats", cookies=login_and_get_cookies())
+    assert response.status_code == 200
+    data = response.json()
+    assert data["success"] is True
+    assert data["data"]["total_habits"] == 0
+    assert data["data"]["habits"] == []
+
+
+@patch("api.routers.habits.HabitService")
+def test_get_habits_stats_notion_error(mock_service_class):
+    """Test error handling when fetching stats fails."""
+    mock_service = MagicMock()
+    mock_service_class.return_value = mock_service
+    
+    mock_service.get_all_habits_stats.side_effect = create_mock_api_error("internal_server_error", 500)
+    
+    response = client.get("/api/habits/stats", cookies=login_and_get_cookies())
+    assert response.status_code == 502
+    data = response.json()
+    assert data["success"] is False
+    assert data["error"]["code"] == "NOTION_API_ERROR"
+
+
+@patch("api.routers.habits.HabitService")
+def test_habit_endpoints_require_auth(mock_service_class):
+    """Test that all new habit endpoints require authentication."""
+    # Test log endpoint
+    response = client.post("/api/habits/log", json={
+        "habit_id": "habit123",
+        "date": "2026-01-27",
+        "completed": True
+    })
+    assert response.status_code == 403  # 403 for missing auth in this API
+    
+    # Test history endpoint
+    response = client.get("/api/habits/habit123/history")
+    assert response.status_code == 403
+    
+    # Test stats endpoint
+    response = client.get("/api/habits/stats")
+    assert response.status_code == 403
+
+
+@patch("api.routers.habits.HabitService")
+def test_log_habit_with_empty_notes(mock_service_class):
+    """Test logging habit with empty notes string."""
+    mock_service = MagicMock()
+    mock_service_class.return_value = mock_service
+    
+    mock_service.log_habit_completion.return_value = {
+        "log_id": "log123",
+        "stats_updated": True,
+        "completion_rate": 0.80,
+        "streak": 5
+    }
+    
+    payload = {
+        "habit_id": "habit123",
+        "date": "2026-01-27",
+        "completed": True,
+        "notes": ""
+    }
+    
+    response = client.post("/api/habits/log", json=payload, cookies=login_and_get_cookies())
+    assert response.status_code == 200
+    assert response.json()["success"] is True
+
+
+@patch("api.routers.habits.HabitService")
+def test_log_habit_special_characters_in_notes(mock_service_class):
+    """Test logging habit with special characters and emojis in notes."""
+    mock_service = MagicMock()
+    mock_service_class.return_value = mock_service
+    
+    mock_service.log_habit_completion.return_value = {
+        "log_id": "log123",
+        "stats_updated": True,
+        "completion_rate": 0.90,
+        "streak": 12
+    }
+    
+    payload = {
+        "habit_id": "habit123",
+        "date": "2026-01-27",
+        "completed": True,
+        "notes": "Great session! 🎉 Türkçe karakterler: ğüşiöç ĞÜŞIÖÇ"
+    }
+    
+    response = client.post("/api/habits/log", json=payload, cookies=login_and_get_cookies())
+    assert response.status_code == 200
+
+
+@patch("api.routers.habits.HabitService")
+def test_get_habit_history_invalid_date_format(mock_service_class):
+    """Test history endpoint with invalid date format in query params."""
+    mock_service = MagicMock()
+    mock_service_class.return_value = mock_service
+    
+    # Service should receive the invalid date and may handle it
+    mock_service.get_habit_history.return_value = []
+    
+    response = client.get(
+        "/api/habits/habit123/history?start_date=invalid&end_date=2026-01-27",
+        cookies=login_and_get_cookies()
+    )
+    # Query params are strings, validation happens at service level
+    assert response.status_code == 200
+
+
+@patch("api.routers.habits.HabitService")
+def test_log_habit_completion_rate_boundaries(mock_service_class):
+    """Test that completion rate is within valid boundaries."""
+    mock_service = MagicMock()
+    mock_service_class.return_value = mock_service
+    
+    mock_service.log_habit_completion.return_value = {
+        "log_id": "log123",
+        "stats_updated": True,
+        "completion_rate": 1.0,  # 100%
+        "streak": 30
+    }
+    
+    payload = {
+        "habit_id": "habit123",
+        "date": "2026-01-27",
+        "completed": True
+    }
+    
+    response = client.post("/api/habits/log", json=payload, cookies=login_and_get_cookies())
+    assert response.status_code == 200
+    data = response.json()
+    assert data["data"]["completion_rate"] <= 1.0
+    assert data["data"]["completion_rate"] >= 0.0
+

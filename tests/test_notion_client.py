@@ -141,3 +141,339 @@ def test_fetch_journals_by_period(MockNotion, mock_env):
     assert "formula" in query_filter
     assert query_filter["formula"]["string"]["equals"] == "2026-W04"
     assert "rich_text" not in query_filter
+
+# ============================================================================
+# FETCH_ACTIVE_HABIT TESTS (Phase 7.3 Refactoring)
+# ============================================================================
+
+@patch("orchestration.notion_service.Client")
+def test_fetch_active_habit_success(MockNotion, mock_env):
+    """Test successfully fetching an active habit by ID."""
+    mock_instance = MockNotion.return_value
+    mock_instance.pages.retrieve.return_value = {
+        "id": "habit123",
+        "parent": {
+            "type": "database_id",
+            "database_id": "habits_id"
+        },
+        "properties": {
+            "Ad": {"title": [{"plain_text": "Morning Meditation"}]},
+            "Durum": {"select": {"name": "Aktif"}},
+            "Frekans": {"select": {"name": "Günlük"}}
+        }
+    }
+    
+    client = NotionClient()
+    habit = client.fetch_active_habit("habit123")
+    
+    assert habit is not None
+    assert habit["id"] == "habit123"
+    assert habit["properties"]["Durum"]["select"]["name"] == "Aktif"
+    mock_instance.pages.retrieve.assert_called_once_with(page_id="habit123")
+
+
+@patch("orchestration.notion_service.Client")
+def test_fetch_active_habit_inactive_status(MockNotion, mock_env):
+    """Test fetching a habit with inactive status returns None."""
+    mock_instance = MockNotion.return_value
+    mock_instance.pages.retrieve.return_value = {
+        "id": "habit456",
+        "parent": {
+            "type": "database_id",
+            "database_id": "habits_id"
+        },
+        "properties": {
+            "Ad": {"title": [{"plain_text": "Old Habit"}]},
+            "Durum": {"select": {"name": "Beklemede"}}
+        }
+    }
+    
+    client = NotionClient()
+    habit = client.fetch_active_habit("habit456")
+    
+    assert habit is None
+    mock_instance.pages.retrieve.assert_called_once()
+
+
+@patch("orchestration.notion_service.Client")
+def test_fetch_active_habit_wrong_database(MockNotion, mock_env):
+    """Test fetching a page from wrong database returns None."""
+    mock_instance = MockNotion.return_value
+    mock_instance.pages.retrieve.return_value = {
+        "id": "goal789",
+        "parent": {
+            "type": "database_id",
+            "database_id": "p_goals_id"  # Wrong database
+        },
+        "properties": {
+            "Ad": {"title": [{"plain_text": "Some Goal"}]},
+            "Durum": {"select": {"name": "Aktif"}}
+        }
+    }
+    
+    client = NotionClient()
+    habit = client.fetch_active_habit("goal789")
+    
+    assert habit is None
+
+
+@patch("orchestration.notion_service.Client")
+def test_fetch_active_habit_not_found(MockNotion, mock_env):
+    """Test fetching non-existent habit handles exception and returns None."""
+    mock_instance = MockNotion.return_value
+    mock_instance.pages.retrieve.side_effect = Exception("Object not found")
+    
+    client = NotionClient()
+    habit = client.fetch_active_habit("nonexistent_id")
+    
+    assert habit is None
+    mock_instance.pages.retrieve.assert_called_once()
+
+
+@patch("orchestration.notion_service.Client")
+def test_fetch_active_habit_api_error(MockNotion, mock_env):
+    """Test API error during habit fetch returns None."""
+    mock_instance = MockNotion.return_value
+    mock_instance.pages.retrieve.side_effect = Exception("API rate limit exceeded")
+    
+    client = NotionClient()
+    habit = client.fetch_active_habit("habit999")
+    
+    assert habit is None
+
+
+@patch("orchestration.notion_service.Client")
+def test_fetch_active_habit_missing_status_field(MockNotion, mock_env):
+    """Test habit with missing status field returns None."""
+    mock_instance = MockNotion.return_value
+    mock_instance.pages.retrieve.return_value = {
+        "id": "habit_no_status",
+        "parent": {
+            "type": "database_id",
+            "database_id": "habits_id"
+        },
+        "properties": {
+            "Ad": {"title": [{"plain_text": "Incomplete Habit"}]}
+            # Missing "Durum" property
+        }
+    }
+    
+    client = NotionClient()
+    habit = client.fetch_active_habit("habit_no_status")
+    
+    assert habit is None
+
+
+@patch("orchestration.notion_service.Client")
+def test_fetch_active_habit_with_dashes_in_db_id(MockNotion, mock_env):
+    """Test database ID comparison works with or without dashes."""
+    mock_instance = MockNotion.return_value
+    # Notion returns IDs with dashes
+    mock_instance.pages.retrieve.return_value = {
+        "id": "habit-with-dashes",
+        "parent": {
+            "type": "database_id",
+            "database_id": "hab-its_id"  # Matches 'habits_id' after - removal
+        },
+        "properties": {
+            "Durum": {"select": {"name": "Aktif"}}
+        }
+    }
+    
+    client = NotionClient()
+    # Should handle dash comparison correctly
+    habit = client.fetch_active_habit("habit-with-dashes")
+    
+    # Should be found because dash removal makes them match
+    assert habit is not None
+    assert habit["id"] == "habit-with-dashes"
+    mock_instance.pages.retrieve.assert_called_once()
+
+
+@patch("orchestration.notion_service.Client")
+def test_fetch_active_habit_empty_parent(MockNotion, mock_env):
+    """Test habit with empty or malformed parent returns None."""
+    mock_instance = MockNotion.return_value
+    mock_instance.pages.retrieve.return_value = {
+        "id": "orphan_habit",
+        "parent": {},  # Missing database_id
+        "properties": {
+            "Durum": {"select": {"name": "Aktif"}}
+        }
+    }
+    
+    client = NotionClient()
+    habit = client.fetch_active_habit("orphan_habit")
+    
+    # Should handle gracefully - parent type check will fail
+    assert habit is None
+
+
+# ============================================================================
+# UPDATE_HABIT_LOG TESTS
+# ============================================================================
+
+@patch("orchestration.notion_service.Client")
+def test_update_habit_log_both_fields(MockNotion, mock_env):
+    """Test updating both completed status and notes."""
+    mock_instance = MockNotion.return_value
+    mock_instance.pages.update.return_value = {"id": "log123"}
+    
+    client = NotionClient()
+    result = client.update_habit_log(
+        log_id="log123",
+        completed=True,
+        notes="Completed in the morning"
+    )
+    
+    assert result is True
+    mock_instance.pages.update.assert_called_once()
+    args, kwargs = mock_instance.pages.update.call_args
+    assert kwargs["page_id"] == "log123"
+    assert kwargs["properties"]["Tamamlandı"]["checkbox"] is True
+    assert kwargs["properties"]["Notlar"]["rich_text"][0]["text"]["content"] == "Completed in the morning"
+
+
+@patch("orchestration.notion_service.Client")
+def test_update_habit_log_only_completed(MockNotion, mock_env):
+    """Test updating only the completed status."""
+    mock_instance = MockNotion.return_value
+    mock_instance.pages.update.return_value = {"id": "log456"}
+    
+    client = NotionClient()
+    result = client.update_habit_log(
+        log_id="log456",
+        completed=False
+    )
+    
+    assert result is True
+    mock_instance.pages.update.assert_called_once()
+    args, kwargs = mock_instance.pages.update.call_args
+    assert kwargs["page_id"] == "log456"
+    assert kwargs["properties"]["Tamamlandı"]["checkbox"] is False
+    assert "Notlar" not in kwargs["properties"]
+
+
+@patch("orchestration.notion_service.Client")
+def test_update_habit_log_only_notes(MockNotion, mock_env):
+    """Test updating only the notes field."""
+    mock_instance = MockNotion.return_value
+    mock_instance.pages.update.return_value = {"id": "log789"}
+    
+    client = NotionClient()
+    result = client.update_habit_log(
+        log_id="log789",
+        notes="Updated notes"
+    )
+    
+    assert result is True
+    mock_instance.pages.update.assert_called_once()
+    args, kwargs = mock_instance.pages.update.call_args
+    assert kwargs["page_id"] == "log789"
+    assert kwargs["properties"]["Notlar"]["rich_text"][0]["text"]["content"] == "Updated notes"
+    assert "Tamamlandı" not in kwargs["properties"]
+
+
+@patch("orchestration.notion_service.Client")
+def test_update_habit_log_empty_notes(MockNotion, mock_env):
+    """Test updating with empty notes string."""
+    mock_instance = MockNotion.return_value
+    mock_instance.pages.update.return_value = {"id": "log_empty"}
+    
+    client = NotionClient()
+    result = client.update_habit_log(
+        log_id="log_empty",
+        completed=True,
+        notes=""
+    )
+    
+    assert result is True
+    mock_instance.pages.update.assert_called_once()
+    args, kwargs = mock_instance.pages.update.call_args
+    assert kwargs["properties"]["Tamamlandı"]["checkbox"] is True
+    assert kwargs["properties"]["Notlar"]["rich_text"][0]["text"]["content"] == ""
+
+
+@patch("orchestration.notion_service.Client")
+def test_update_habit_log_no_properties(MockNotion, mock_env):
+    """Test update with no properties returns True without API call."""
+    mock_instance = MockNotion.return_value
+    
+    client = NotionClient()
+    result = client.update_habit_log(log_id="log_none")
+    
+    assert result is True
+    mock_instance.pages.update.assert_not_called()
+
+
+@patch("orchestration.notion_service.Client")
+def test_update_habit_log_api_error(MockNotion, mock_env):
+    """Test handling of API errors during update."""
+    mock_instance = MockNotion.return_value
+    mock_instance.pages.update.side_effect = Exception("API error")
+    
+    client = NotionClient()
+    result = client.update_habit_log(
+        log_id="log_error",
+        completed=True
+    )
+    
+    assert result is False
+    mock_instance.pages.update.assert_called_once()
+
+
+@patch("orchestration.notion_service.Client")
+def test_update_habit_log_long_notes_truncated(MockNotion, mock_env):
+    """Test that notes longer than 2000 characters are truncated."""
+    mock_instance = MockNotion.return_value
+    mock_instance.pages.update.return_value = {"id": "log_long"}
+    
+    long_notes = "A" * 3000  # Create 3000 character string
+    
+    client = NotionClient()
+    result = client.update_habit_log(
+        log_id="log_long",
+        notes=long_notes
+    )
+    
+    assert result is True
+    args, kwargs = mock_instance.pages.update.call_args
+    actual_notes = kwargs["properties"]["Notlar"]["rich_text"][0]["text"]["content"]
+    assert len(actual_notes) == 2000
+    assert actual_notes == "A" * 2000
+
+
+@patch("orchestration.notion_service.Client")
+def test_update_habit_log_toggle_completed_false(MockNotion, mock_env):
+    """Test explicitly setting completed to False."""
+    mock_instance = MockNotion.return_value
+    mock_instance.pages.update.return_value = {"id": "log_false"}
+    
+    client = NotionClient()
+    result = client.update_habit_log(
+        log_id="log_false",
+        completed=False,
+        notes="Decided not to do it today"
+    )
+    
+    assert result is True
+    args, kwargs = mock_instance.pages.update.call_args
+    assert kwargs["properties"]["Tamamlandı"]["checkbox"] is False
+    assert "Decided not to do it today" in kwargs["properties"]["Notlar"]["rich_text"][0]["text"]["content"]
+
+
+@patch("orchestration.notion_service.Client")
+def test_update_habit_log_with_special_characters(MockNotion, mock_env):
+    """Test updating notes with special characters and emojis."""
+    mock_instance = MockNotion.return_value
+    mock_instance.pages.update.return_value = {"id": "log_special"}
+    
+    client = NotionClient()
+    result = client.update_habit_log(
+        log_id="log_special",
+        notes="Great session! 💪 Felt amazing 🎉"
+    )
+    
+    assert result is True
+    args, kwargs = mock_instance.pages.update.call_args
+    assert kwargs["properties"]["Notlar"]["rich_text"][0]["text"]["content"] == "Great session! 💪 Felt amazing 🎉"

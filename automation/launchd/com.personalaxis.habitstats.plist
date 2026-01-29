@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.personalaxis.habitstats</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>__PYTHON_PATH__</string>
+        <string>-m</string>
+        <string>orchestration.main</string>
+        <string>refresh-habit-stats</string>
+        <string>--notify</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>__PROJECT_DIR__</string>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>__HABITSTATS_HOUR__</integer>
+        <key>Minute</key>
+        <integer>__HABITSTATS_MINUTE__</integer>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>__PROJECT_DIR__/logs/habitstats.log</string>
+    <key>StandardErrorPath</key>
+    <string>__PROJECT_DIR__/logs/habitstats.error.log</string>
+</dict>
+</plist>

@@ -97,24 +97,24 @@
 - **DONE** 7.1.3: Create migration script for existing habits data
 
 ### 7.2: Orchestration Layer Updates
-- **TO DO** 7.2.1: Add `HabitLogService` to orchestration layer
-- **TO DO** 7.2.2: Update `NotionService` with habit log CRUD operations
-- **TO DO** 7.2.3: Update context builder to include habit statistics (streaks, rates)
-- **TO DO** 7.2.4: Implement habit stats calculation service
-- **TO DO** 7.2.5: Add background job to refresh habit stats daily
+- **DONE** 7.2.1: Add `HabitLogService` to orchestration layer
+- **DONE** 7.2.2: Update `NotionService` with habit log CRUD operations
+- **DONE** 7.2.3: Update context builder to include habit statistics (streaks, rates)
+- **DONE** 7.2.4: Implement habit stats calculation service
+- **DONE** 7.2.5: Add background job to refresh habit stats daily
 
 ### 7.3: API Endpoints
-- **TO DO** 7.3.1: Create `POST /api/habits/log` endpoint (log completion)
-- **TO DO** 7.3.2: Create `GET /api/habits/{id}/history` endpoint (fetch history)
-- **TO DO** 7.3.3: Create `GET /api/habits/stats` endpoint (analytics summary)
+- **DONE** 7.3.1: Create `POST /api/habits/log` endpoint (log completion)
+- **DONE** 7.3.2: Create `GET /api/habits/{id}/history` endpoint (fetch history)
+- **DONE** 7.3.3: Create `GET /api/habits/stats` endpoint (analytics summary)
 
 ### 7.4: PWA Updates
-- **TO DO** 7.4.1: Update habits view with completion toggle (daily check-in)
-- **TO DO** 7.4.2: Add habit history visualization (streak counter, mini calendar)
-- **TO DO** 7.4.3: Integrate habit logging into Daily Journal flow
+- **DONE** 7.4.1: Update habits view with completion toggle (daily check-in)
+- **DONE** 7.4.2: Add habit history visualization (streak counter, mini calendar)
+- **DONE** 7.4.3: Integrate habit logging into Daily Journal flow
 
 ### 7.5: AI Integration
-- **TO DO** 7.5.1: Update AI prompts with habit analytics context
+- **DONE** 7.5.1: Update AI prompts with habit analytics context
 
 ---
 

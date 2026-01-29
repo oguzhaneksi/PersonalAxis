@@ -369,6 +369,215 @@ html, body {
   color: white;
 }
 
+/* Checkbox */
+.checkbox {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  border: 2px solid var(--color-text-muted);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.checkbox:hover {
+  border-color: var(--color-accent);
+  transform: scale(1.1);
+}
+
+.checkbox.checked {
+  background: var(--color-success);
+  border-color: var(--color-success);
+  color: white;
+}
+
+/* Habit Cards */
+.habit-card {
+  margin-bottom: var(--space-md);
+  background: var(--color-bg-card);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.habit-card .list-item {
+  cursor: pointer;
+  margin-bottom: 0;
+}
+
+.habit-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.expand-icon {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  transition: transform 0.3s ease;
+}
+
+.habit-card.expanded .expand-icon {
+  transform: rotate(90deg);
+}
+
+.habit-details {
+  padding: var(--space-md);
+  border-top: 1px solid var(--color-bg-secondary);
+  background: var(--color-bg-secondary);
+}
+
+.habit-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.stat-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.stat-value {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.habit-calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.calendar-day {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-text-muted);
+  font-size: 10px;
+  transition: all 0.2s ease;
+}
+
+.calendar-day .day-label {
+  font-size: 8px;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+}
+
+.calendar-day .day-number {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.calendar-day.completed {
+  background: var(--color-success);
+  border-color: var(--color-success);
+}
+
+.calendar-day.completed .day-label,
+.calendar-day.completed .day-number {
+  color: white;
+}
+
+.calendar-day.skipped {
+  background: var(--color-bg-primary);
+  opacity: 0.4;
+}
+
+.loading-text, .error-text {
+  text-align: center;
+  padding: var(--space-md);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.error-text {
+  color: var(--color-error);
+}
+
+/* Journal Habits Checklist */
+.journal-habits-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  background: var(--color-bg-secondary);
+  border-radius: var(--border-radius);
+}
+
+.journal-habit-item {
+  padding: var(--space-sm);
+}
+
+.habit-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  cursor: pointer;
+  user-select: none;
+}
+
+.habit-checkbox-input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.habit-checkbox-custom {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  border: 2px solid var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.habit-checkbox-custom::after {
+  content: '✓';
+  font-size: 16px;
+  color: white;
+  opacity: 0;
+  transform: scale(0);
+  transition: all 0.2s ease;
+}
+
+.habit-checkbox-custom.checked {
+  background: var(--color-success);
+  border-color: var(--color-success);
+}
+
+.habit-checkbox-custom.checked::after {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.habit-name {
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
+}
+
 /* Type Selector */
 .type-selector {
   display: grid;

@@ -1,35 +1,24 @@
 import datetime
 from typing import Dict, List, Any, Optional
+from .util import safe_get_text
+from .habit_stats_service import HabitStatsService
+
+# Habit Thresholds for visual indicators
+HIGH_STREAK_THRESHOLD = 7
+MEDIUM_STREAK_THRESHOLD = 3
+HIGH_COMPLETION_THRESHOLD = 80
+MEDIUM_COMPLETION_THRESHOLD = 50
+
+# Display Limits
+MAX_RECENT_JOURNALS = 5
 
 class ContextBuilder:
     """
     Transforms raw Notion data into structured Markdown context for AI models.
     """
-
-    @staticmethod
-    def _safe_get_text(prop: Dict) -> str:
-        """Safely extract text from a Notion property."""
-        try:
-            if prop["type"] == "title":
-                return prop["title"][0]["plain_text"] if prop["title"] else ""
-            if prop["type"] == "rich_text":
-                return prop["rich_text"][0]["plain_text"] if prop["rich_text"] else ""
-            if prop["type"] == "select":
-                return prop["select"]["name"] if prop["select"] else ""
-            if prop["type"] == "multi_select":
-                return ", ".join([opt["name"] for opt in prop["multi_select"]])
-            if prop["type"] == "number":
-                return str(prop["number"]) if prop["number"] is not None else "0"
-            if prop["type"] == "date":
-                return prop["date"]["start"] if prop["date"] else ""
-            if prop["type"] == "formula":
-                formula_data = prop.get("formula", {})
-                f_type = formula_data.get("type")
-                if f_type:
-                    return str(formula_data.get(f_type, ""))
-            return ""
-        except (KeyError, IndexError):
-            return ""
+    
+    def __init__(self):
+        self.habit_stats_service = HabitStatsService()
 
     def build_daily_context(
         self, 
@@ -37,10 +26,19 @@ class ContextBuilder:
         goals: List[Dict], 
         habits: List[Dict], 
         recent_journals: List[Dict],
-        tasks: List[Dict]
+        tasks: List[Dict],
+        include_habit_stats: bool = True
     ) -> str:
         """
-        Builds the daily context string.
+        Builds the daily context string with optional habit statistics.
+        
+        Args:
+            pillars: List of pillar objects
+            goals: List of goal objects
+            habits: List of habit objects
+            recent_journals: List of journal objects
+            tasks: List of task objects
+            include_habit_stats: Whether to calculate and include streaks/rates (default True)
         """
         now = datetime.datetime.now()
         date_str = now.strftime("%Y-%m-%d")
@@ -51,8 +49,8 @@ class ContextBuilder:
         context.append("## Aktif Sütunlar")
         if pillars:
             for p in pillars:
-                name = self._safe_get_text(p["properties"]["Ad"])
-                group = self._safe_get_text(p["properties"]["Grup"])
+                name = safe_get_text(p["properties"]["Ad"])
+                group = safe_get_text(p["properties"]["Grup"])
                 context.append(f"- **{name}** ({group})")
         else:
             context.append("- Henüz aktif sütun tanımlanmamış.")
@@ -63,8 +61,8 @@ class ContextBuilder:
         if goals:
             # Group by period type if needed, but for now just list
             for g in goals:
-                name = self._safe_get_text(g["properties"]["Ad"])
-                p_type = self._safe_get_text(g["properties"]["Dönem Tipi"])
+                name = safe_get_text(g["properties"]["Ad"])
+                p_type = safe_get_text(g["properties"]["Dönem Tipi"])
                 progress = g["properties"].get("İlerleme", {}).get("formula", {}).get("number", 0)
                 if progress is None: progress = 0
                 context.append(f"- [{p_type}] {name} (İlerleme: %{int(progress * 100)})")
@@ -72,14 +70,40 @@ class ContextBuilder:
             context.append("- Bu dönem için aktif hedef bulunmuyor.")
         context.append("")
 
-        # 3. Habits
+        # 3. Habits (with stats if enabled)
         context.append("## Aktif Alışkanlıklar")
         if habits:
             for h in habits:
-                name = self._safe_get_text(h["properties"]["Ad"])
-                freq = self._safe_get_text(h["properties"]["Frekans"])
-                last_done = self._safe_get_text(h["properties"]["Son Tamamlama"])
-                context.append(f"- {name} ({freq}) [Son: {last_done if last_done else 'Hiç'}]")
+                name = safe_get_text(h["properties"]["Ad"])
+                freq = safe_get_text(h["properties"]["Frekans"])
+                
+                if include_habit_stats:
+                    # Get stats from Notion properties (already calculated)
+                    streak = h["properties"].get("Streak", {}).get("number", 0)
+                    if streak is None:
+                        streak = 0
+                    
+                    completion_rate_raw = h["properties"].get("Tamamlama Oranı", {}).get("number")
+                    if completion_rate_raw is not None:
+                        completion_rate = round(completion_rate_raw * 100)
+                    else:
+                        completion_rate = 0
+                    
+                    last_done = safe_get_text(h["properties"]["Son Tamamlama"])
+                    last_done_str = last_done if last_done else "Hiç"
+                    
+                    # Enhanced display with emoji indicators
+                    streak_indicator = "🔥" if streak >= HIGH_STREAK_THRESHOLD else "⭐" if streak >= MEDIUM_STREAK_THRESHOLD else ""
+                    rate_indicator = "💪" if completion_rate >= HIGH_COMPLETION_THRESHOLD else "📊" if completion_rate >= MEDIUM_COMPLETION_THRESHOLD else "⚠️"
+                    
+                    context.append(
+                        f"- **{name}** ({freq}) {rate_indicator} "
+                        f"[Oran: %{completion_rate} | Seri: {streak} {streak_indicator} | Son: {last_done_str}]"
+                    )
+                else:
+                    # Fallback to basic display without stats
+                    last_done = safe_get_text(h["properties"]["Son Tamamlama"])
+                    context.append(f"- {name} ({freq}) [Son: {last_done if last_done else 'Hiç'}]")
         else:
             context.append("- Aktif alışkanlık bulunmuyor.")
         context.append("")
@@ -88,8 +112,8 @@ class ContextBuilder:
         context.append("## Bugünkü Görevler")
         if tasks:
             for t in tasks:
-                name = self._safe_get_text(t["properties"]["Ad"])
-                priority = self._safe_get_text(t["properties"]["Öncelik"])
+                name = safe_get_text(t["properties"]["Ad"])
+                priority = safe_get_text(t["properties"]["Öncelik"])
                 context.append(f"- [{priority}] {name}")
         else:
             context.append("- Bugün için planlanmış görev yok.")
@@ -98,9 +122,9 @@ class ContextBuilder:
         # 5. Recent Journals (Reflections)
         context.append("## Son Günlerdeki Yansımalar")
         if recent_journals:
-            # Show last 3-5 entries
-            for j in recent_journals[:5]:
-                date = self._safe_get_text(j["properties"]["Tarih Kodu"])
+            # Show last N entries
+            for j in recent_journals[:MAX_RECENT_JOURNALS]:
+                date = safe_get_text(j["properties"]["Tarih Kodu"])
                 content = j.get("content", "")
                 
                 context.append(f"### {date}")
@@ -127,8 +151,8 @@ class ContextBuilder:
         context.append(f"## {period} Dönemi Hedefleri")
         if goals:
             for g in goals:
-                name = self._safe_get_text(g["properties"]["Ad"])
-                status = self._safe_get_text(g["properties"]["Durum"])
+                name = safe_get_text(g["properties"]["Ad"])
+                status = safe_get_text(g["properties"]["Durum"])
                 progress = g["properties"].get("İlerleme", {}).get("formula", {}).get("number", 0)
                 if progress is None: progress = 0
                 context.append(f"- {name} (Durum: {status}, İlerleme: %{int(progress * 100)})")
@@ -140,7 +164,7 @@ class ContextBuilder:
         context.append(f"## {period} Dönemi Günlük Yansımaları")
         if journals:
             for j in journals:
-                date = self._safe_get_text(j["properties"]["Tarih Kodu"])
+                date = safe_get_text(j["properties"]["Tarih Kodu"])
                 content = j.get("content", "")
                 
                 context.append(f"### {date}")

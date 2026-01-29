@@ -33,10 +33,17 @@ const Utils = {
     
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
-    toast.innerHTML = `
-      <span class="toast-icon">${type === 'success' ? '✓' : '⚠️'}</span>
-      <span class="toast-message">${message}</span>
-    `;
+    
+    const icon = document.createElement('span');
+    icon.className = 'toast-icon';
+    icon.textContent = type === 'success' ? '✓' : '⚠️';
+    
+    const msg = document.createElement('span');
+    msg.className = 'toast-message';
+    msg.textContent = message;
+    
+    toast.appendChild(icon);
+    toast.appendChild(msg);
     
     document.body.appendChild(toast);
     
