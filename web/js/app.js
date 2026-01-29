@@ -621,34 +621,68 @@ Screens.habits = {
       return;
     }
 
-    container.innerHTML = this.habits.map((habit, index) => {
+    // Build habit cards using DOM APIs to avoid injecting unescaped HTML
+    container.innerHTML = '';
+    this.habits.forEach((habit, index) => {
       const completionPercent = Math.round(habit.completion_rate * 100 || 0);
       const isExpanded = this.expandedHabitId === habit.id;
-      
-      return `
-        <div class="habit-card ${isExpanded ? 'expanded' : ''}">
-          <div class="list-item habit-expand-trigger" data-habit-id="${habit.id}">
-            <div class="list-content">
-              <div class="title">${habit.name || 'Untitled Habit'}</div>
-              <div class="subtitle">
-                🔥 ${habit.streak || 0} day streak • ${completionPercent}% completion
-              </div>
-            </div>
-            <div class="habit-actions">
-              <div class="checkbox habit-toggle-trigger ${habit.completed_today ? 'checked' : ''}" 
-                   data-habit-index="${index}">
-                ${habit.completed_today ? '✓' : '○'}
-              </div>
-              <span class="expand-icon">${isExpanded ? '▼' : '▶'}</span>
-            </div>
-          </div>
-          ${isExpanded ? `<div class="habit-details" id="habit-details-${habit.id}">
-            <div class="loading-text">Loading history...</div>
-          </div>` : ''}
-        </div>
-      `;
-    }).join('');
 
+      const habitCard = document.createElement('div');
+      habitCard.className = 'habit-card' + (isExpanded ? ' expanded' : '');
+
+      const listItem = document.createElement('div');
+      listItem.className = 'list-item habit-expand-trigger';
+      listItem.dataset.habitId = String(habit.id);
+
+      const listContent = document.createElement('div');
+      listContent.className = 'list-content';
+
+      const title = document.createElement('div');
+      title.className = 'title';
+      title.textContent = habit.name || 'Untitled Habit';
+
+      const subtitle = document.createElement('div');
+      subtitle.className = 'subtitle';
+      subtitle.textContent = `🔥 ${habit.streak || 0} day streak • ${completionPercent}% completion`;
+
+      listContent.appendChild(title);
+      listContent.appendChild(subtitle);
+
+      const habitActions = document.createElement('div');
+      habitActions.className = 'habit-actions';
+
+      const checkbox = document.createElement('div');
+      checkbox.className = 'checkbox habit-toggle-trigger' + (habit.completed_today ? ' checked' : '');
+      checkbox.dataset.habitIndex = String(index);
+      checkbox.textContent = habit.completed_today ? '✓' : '○';
+
+      const expandIcon = document.createElement('span');
+      expandIcon.className = 'expand-icon';
+      expandIcon.textContent = isExpanded ? '▼' : '▶';
+
+      habitActions.appendChild(checkbox);
+      habitActions.appendChild(expandIcon);
+
+      listItem.appendChild(listContent);
+      listItem.appendChild(habitActions);
+
+      habitCard.appendChild(listItem);
+
+      if (isExpanded) {
+        const habitDetails = document.createElement('div');
+        habitDetails.className = 'habit-details';
+        habitDetails.id = `habit-details-${habit.id}`;
+
+        const loadingText = document.createElement('div');
+        loadingText.className = 'loading-text';
+        loadingText.textContent = 'Loading history...';
+
+        habitDetails.appendChild(loadingText);
+        habitCard.appendChild(habitDetails);
+      }
+
+      container.appendChild(habitCard);
+    });
     // Attach event listeners
     container.querySelectorAll('.habit-expand-trigger').forEach(el => {
       el.addEventListener('click', () => {
