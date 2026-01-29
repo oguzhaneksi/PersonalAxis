@@ -459,7 +459,7 @@ class TestCalculateStatsForHabit:
         habit_stats_service.calculate_completion_rate = Mock(return_value=0.75)
         habit_stats_service.get_last_completion_date = Mock(return_value="2026-01-20")
         
-        completion_rate, streak, last_completion = habit_stats_service.calculate_stats_for_habit(sample_habit_weekly)
+        completion_rate, streak, _ = habit_stats_service.calculate_stats_for_habit(sample_habit_weekly)
         
         habit_stats_service.calculate_streak.assert_called_once_with("habit456", "Haftalık")
         habit_stats_service.calculate_completion_rate.assert_called_once_with("habit456", 30, "Haftalık")
