@@ -602,3 +602,39 @@ class TestEdgeCases:
         # Should handle Turkish characters correctly
         streak = habit_stats_service.calculate_streak("habit123", "Günlük")
         assert isinstance(streak, int)
+    
+    def test_streak_daily_no_duplicate_counting(self, habit_stats_service):
+        """Test that duplicate completion dates are not counted twice in streak."""
+        today = datetime.date.today()
+        # Create duplicate logs for the same dates
+        logs = [
+            {
+                "properties": {
+                    "Tamamlandı": {"checkbox": True},
+                    "Tarih": {"type": "date", "date": {"start": today.isoformat()}}
+                }
+            },
+            {
+                "properties": {
+                    "Tamamlandı": {"checkbox": True},
+                    "Tarih": {"type": "date", "date": {"start": today.isoformat()}}  # Duplicate today
+                }
+            },
+            {
+                "properties": {
+                    "Tamamlandı": {"checkbox": True},
+                    "Tarih": {"type": "date", "date": {"start": (today - datetime.timedelta(days=1)).isoformat()}}
+                }
+            },
+            {
+                "properties": {
+                    "Tamamlandı": {"checkbox": True},
+                    "Tarih": {"type": "date", "date": {"start": (today - datetime.timedelta(days=1)).isoformat()}}  # Duplicate yesterday
+                }
+            }
+        ]
+        habit_stats_service.notion.fetch_habit_logs.return_value = logs
+        
+        streak = habit_stats_service.calculate_streak("habit123", "Günlük")
+        # Should count only unique dates: today and yesterday = 2, not 4
+        assert streak == 2

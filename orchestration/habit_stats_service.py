@@ -52,25 +52,30 @@ class HabitStatsService:
         if not completed_dates:
             return 0
 
-        # Sort dates in descending order (most recent first)
-        completed_dates.sort(reverse=True)
+        # Remove duplicates and sort dates in descending order (most recent first)
+        completed_dates = sorted(set(completed_dates), reverse=True)
         
         # Calculate streak based on frequency
         streak = 0
         today = datetime.date.today()
         
         if frequency == "Günlük":
-            # Check consecutive days
-            expected_date = today
+            # Check consecutive days starting from today or yesterday (grace period)
+            # First, determine if the most recent completion allows maintaining a streak
+            most_recent = completed_dates[0]
+            
+            # Streak is broken if most recent completion is more than 1 day old
+            if (today - most_recent).days > 1:
+                return 0
+            
+            # Start checking from the most recent completion
+            expected_date = most_recent
             for comp_date in completed_dates:
-                # Allow completion on today or yesterday to maintain streak
                 if comp_date == expected_date:
                     streak += 1
                     expected_date = comp_date - datetime.timedelta(days=1)
-                elif comp_date == expected_date - datetime.timedelta(days=1):
-                    streak += 1
-                    expected_date = comp_date - datetime.timedelta(days=1)
                 else:
+                    # Streak is broken if we skip a day
                     break
                     
         elif frequency == "Haftalık":
