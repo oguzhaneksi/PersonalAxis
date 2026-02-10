@@ -644,76 +644,87 @@ Screens.habits = {
     this.habits.forEach((habit, index) => {
       const completionPercent = Math.round(habit.completion_rate * 100 || 0);
       const isExpanded = this.expandedHabitId === habit.id;
+      const habitName = Utils.escapeHtml(habit.name || 'Untitled Habit');
+      const habitId = Utils.escapeHtml(String(habit.id || ''));
+      const streak = parseInt(habit.streak, 10) || 0;
+      
+      return `
+        <div class="habit-card ${isExpanded ? 'expanded' : ''}">
+          <div class="list-item habit-expand-trigger" data-habit-id="${habitId}">
+            <div class="list-content">
+              <div class="title">${habitName}</div>
+              <div class="subtitle">
+                🔥 ${streak} day streak • ${completionPercent}% completion
+              </div>
+            </div>
+            <div class="habit-actions">
+              <button class="checkbox habit-toggle-trigger ${habit.completed_today ? 'checked' : ''}" 
+                   data-habit-index="${index}"
+                   role="checkbox"
+                   aria-checked="${habit.completed_today ? 'true' : 'false'}"
+                   aria-label="Mark ${habitName} as ${habit.completed_today ? 'incomplete' : 'complete'}"
+                   tabindex="0">
+                <span aria-hidden="true">${habit.completed_today ? '✓' : '○'}</span>
+              </button>
+              <button class="expand-button" 
+                      aria-label="${isExpanded ? 'Collapse' : 'Expand'} ${habitName} details"
+                      aria-expanded="${isExpanded ? 'true' : 'false'}"
+                      tabindex="0">
+                <span class="expand-icon" aria-hidden="true">▶</span>
+              </button>
+            </div>
+          </div>
+          ${isExpanded ? `<div class="habit-details" id="habit-details-${habitId}" role="region" aria-label="${habitName} history">
+            <div class="loading-text">Loading history...</div>
+          </div>` : ''}
+        </div>
+      `;
+    }).join('');
 
-      const habitCard = document.createElement('div');
-      habitCard.className = 'habit-card' + (isExpanded ? ' expanded' : '');
-
-      const listItem = document.createElement('div');
-      listItem.className = 'list-item habit-expand-trigger';
-      listItem.dataset.habitId = String(habit.id);
-
-      const listContent = document.createElement('div');
-      listContent.className = 'list-content';
-
-      const title = document.createElement('div');
-      title.className = 'title';
-      title.textContent = habit.name || 'Untitled Habit';
-
-      const subtitle = document.createElement('div');
-      subtitle.className = 'subtitle';
-      subtitle.textContent = `🔥 ${habit.streak || 0} day streak • ${completionPercent}% completion`;
-
-      listContent.appendChild(title);
-      listContent.appendChild(subtitle);
-
-      const habitActions = document.createElement('div');
-      habitActions.className = 'habit-actions';
-
-      const checkbox = document.createElement('div');
-      checkbox.className = 'checkbox habit-toggle-trigger' + (habit.completed_today ? ' checked' : '');
-      checkbox.dataset.habitIndex = String(index);
-      checkbox.textContent = habit.completed_today ? '✓' : '○';
-
-      const expandIcon = document.createElement('span');
-      expandIcon.className = 'expand-icon';
-      expandIcon.textContent = isExpanded ? '▼' : '▶';
-
-      habitActions.appendChild(checkbox);
-      habitActions.appendChild(expandIcon);
-
-      listItem.appendChild(listContent);
-      listItem.appendChild(habitActions);
-
-      habitCard.appendChild(listItem);
-
-      if (isExpanded) {
-        const habitDetails = document.createElement('div');
-        habitDetails.className = 'habit-details';
-        habitDetails.id = `habit-details-${habit.id}`;
-
-        const loadingText = document.createElement('div');
-        loadingText.className = 'loading-text';
-        loadingText.textContent = 'Loading history...';
-
-        habitDetails.appendChild(loadingText);
-        habitCard.appendChild(habitDetails);
-      }
-
-      container.appendChild(habitCard);
-    });
     // Attach event listeners
     container.querySelectorAll('.habit-expand-trigger').forEach(el => {
-      el.addEventListener('click', () => {
-        const habitId = el.dataset.habitId;
-        this.toggleExpand(habitId);
+      el.addEventListener('click', (e) => {
+        // Only trigger expand if clicking on the main area, not the buttons
+        if (!e.target.closest('button')) {
+          const habitId = el.dataset.habitId;
+          this.toggleExpand(habitId);
+        }
       });
     });
 
+    // Expand button event listeners
+    container.querySelectorAll('.expand-button').forEach(el => {
+      const handler = (e) => {
+        e.stopPropagation();
+        const habitId = el.closest('.habit-expand-trigger').dataset.habitId;
+        this.toggleExpand(habitId);
+      };
+      
+      el.addEventListener('click', handler);
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          e.stopPropagation();
+          handler(e);
+        }
+      });
+    });
+
+    // Checkbox toggle event listeners
     container.querySelectorAll('.habit-toggle-trigger').forEach(el => {
-      el.addEventListener('click', (e) => {
+      const handler = (e) => {
         e.stopPropagation();
         const index = parseInt(el.dataset.habitIndex, 10);
         this.toggleHabit(index);
+      };
+      
+      el.addEventListener('click', handler);
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          e.stopPropagation();
+          handler(e);
+        }
       });
     });
 

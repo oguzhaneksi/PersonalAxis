@@ -379,16 +379,25 @@ html, body {
   justify-content: center;
   font-size: 18px;
   border: 2px solid var(--color-text-muted);
+  background: transparent;
   color: var(--color-text-muted);
   cursor: pointer;
   transition: all 0.2s ease;
   user-select: none;
   flex-shrink: 0;
+  padding: 0;
+  outline: none;
 }
 
 .checkbox:hover {
   border-color: var(--color-accent);
   transform: scale(1.1);
+}
+
+.checkbox:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
 }
 
 .checkbox.checked {
@@ -415,6 +424,29 @@ html, body {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
+}
+
+.expand-button {
+  background: transparent;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--border-radius);
+  outline: none;
+  transition: background 0.2s ease;
+}
+
+.expand-button:hover {
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.expand-button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
 }
 
 .expand-icon {
